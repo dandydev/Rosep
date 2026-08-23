@@ -719,6 +719,18 @@ text-align:center;
                 </div>
             </div>
 
+                        <div class="form-row">
+                <div>
+                    <label>Last payment date</label>
+                    <input type="date" id="loanFormLastPaymentDate" onchange="syncPaymentMonth()">
+                </div>
+                <div>
+                    <label>Paid up to (month)</label>
+                    <input type="month" id="loanFormLastPaymentMonth">
+                </div>
+            </div>
+            <div style="font-size:.75rem;color:var(--muted);margin-top:-8px;margin-bottom:12px;">Month auto-fills from the date — edit it separately only for unusual cases.</div>
+
             <div id="loanFormFields"></div>
 
             <label>Note</label>
@@ -897,6 +909,15 @@ daily: [
 ]
 };
 
+function syncPaymentMonth(){
+const dateVal = document.getElementById("loanFormLastPaymentDate").value;
+if(dateVal){
+document.getElementById("loanFormLastPaymentMonth").value = dateVal.slice(0,7);
+}
+}
+
+window.syncPaymentMonth = syncPaymentMonth;
+
 function renderLoanFormFields(existingValues){
 const type = document.getElementById("loanFormType").value;
 const fields = TYPE_FIELD_CONFIG[type];
@@ -924,6 +945,8 @@ document.getElementById("loanFormName").value = loan.name;
 document.getElementById("loanFormType").value = loan.type;
 document.getElementById("loanFormStatus").value = loan.status;
 document.getElementById("loanFormDueDate").value = loan.dueDate;
+document.getElementById("loanFormLastPaymentDate").value = loan.lastPayment ? loan.lastPayment.date : "";
+document.getElementById("loanFormLastPaymentMonth").value = loan.lastPayment ? loan.lastPayment.forMonth : "";
 document.getElementById("loanFormNote").value = loan.note || "";
 renderLoanFormFields({
 principal: loan.principal,
@@ -967,12 +990,17 @@ const id = document.getElementById("loanFormId").value;
 const type = document.getElementById("loanFormType").value;
 const fields = TYPE_FIELD_CONFIG[type];
 
+const lastPaymentDate = document.getElementById("loanFormLastPaymentDate").value;
+const lastPaymentMonth = document.getElementById("loanFormLastPaymentMonth").value;
+
 const record = {
 name: document.getElementById("loanFormName").value.trim(),
 repayment_type: type,
 status: document.getElementById("loanFormStatus").value,
 due_date: document.getElementById("loanFormDueDate").value,
 date_given: document.getElementById("loanFormDateGiven").value || null,
+last_payment_date: lastPaymentDate || null,
+last_payment_for_month: lastPaymentMonth || (lastPaymentDate ? lastPaymentDate.slice(0,7) : null),
 note: document.getElementById("loanFormNote").value.trim() || null,
 admin_note: document.getElementById("loanFormAdminNote").value.trim() || null,
 principal: 0,
@@ -1029,10 +1057,22 @@ await refreshDashboard();
 
 async function refreshDashboard(){
 await loadLoans();
+if(isAdmin()) await loadAdminDateGiven();
 renderSummary();
 renderLoanGrid();
 renderTimeline();
 document.getElementById("lastUpdated").textContent = "Last loaded: " + new Date().toLocaleString();
+}
+
+async function loadAdminDateGiven(){
+// date_given is excluded from the public loans query — this is a separate,
+// admin-only fetch that merges it in just for display when logged in.
+// Never called for anonymous visitors.
+const { data, error } = await supabaseClient.from("loans").select("id, date_given");
+if(error || !data) return;
+const map = {};
+data.forEach(row => { map[row.id] = row.date_given; });
+loans.forEach(loan => { loan.dateGiven = map[loan.id] || null; });
 }
 
 window.openLoanForm = openLoanForm;
@@ -1107,7 +1147,8 @@ ${loan.dailyRate ? `<div class="detail-row"><span>Daily rate</span><strong>${mon
 }
 
 const lastPaymentLine = loan.lastPayment ?
-`<div class="detail-row"><span>${formatLastPayment(loan)}</span></div>` : "";
+`<div class="detail-row"><span>${formatLastPayment(loan)}</span></div>` :
+(isAdmin() && loan.dateGiven ? `<div class="detail-row admin-only block"><span>Given ${formatDate(loan.dateGiven)} (private)</span></div>` : "");
 
 return `
 <div class="loan-card ${m.overdue ? 'overdue' : ''}">
@@ -1302,11 +1343,14 @@ return;
 currentSession = data.session;
 closeLoginModal();
 setAdminUI();
+await loadAdminDateGiven();
+renderLoanGrid();
 }
 
 async function handleLogout(){
 await supabaseClient.auth.signOut();
 currentSession = null;
+loans.forEach(loan => { delete loan.dateGiven; });
 setAdminUI();
 }
 
@@ -1441,6 +1485,7 @@ currentSession = sessionData.session;
 setAdminUI();
 
 await loadLoans();
+if(isAdmin()) await loadAdminDateGiven();
 
 renderSummary();
 renderLoanGrid();
