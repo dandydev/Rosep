@@ -457,6 +457,104 @@ margin-bottom:5px;
 color:var(--muted);
 }
 
+.modal-content select,
+.modal-content textarea{
+width:100%;
+padding:10px;
+border-radius:8px;
+border:1px solid var(--border);
+background:var(--bg);
+color:var(--text);
+margin-bottom:12px;
+font-family:inherit;
+font-size:.9rem;
+}
+
+.modal-content textarea{resize:vertical;min-height:70px;}
+
+.form-row{display:flex;gap:10px;}
+.form-row > div{flex:1;}
+
+.admin-only{display:none;}
+body.is-admin .admin-only{display:inline-flex;}
+body.is-admin .admin-only.block{display:block;}
+
+.section-header-row{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:14px;
+}
+
+.section-header-row h2{margin-bottom:0;}
+
+.card-icon-actions{display:flex;gap:2px;}
+
+.icon-btn:hover{color:var(--text);}
+.icon-btn.danger:hover{color:var(--danger);opacity:.8;}
+
+.reports-menu{position:relative;display:inline-block;}
+.reports-dropdown{
+display:none;
+position:absolute;
+right:0;
+top:calc(100% + 6px);
+background:var(--card);
+border:1px solid var(--border);
+border-radius:10px;
+box-shadow:var(--shadow);
+min-width:200px;
+z-index:50;
+overflow:hidden;
+}
+.reports-dropdown.open{display:block;}
+.reports-dropdown button{
+display:block;
+width:100%;
+text-align:left;
+padding:10px 14px;
+border:none;
+background:none;
+color:var(--text);
+font-size:.85rem;
+cursor:pointer;
+}
+.reports-dropdown button:hover{background:var(--bg);}
+
+#reportCanvasHost{
+position:fixed;
+left:-9999px;
+top:0;
+width:640px;
+background:var(--card);
+color:var(--text);
+padding:28px;
+font-family:inherit;
+}
+#reportCanvasHost h2{font-size:1.15rem;margin-bottom:2px;}
+#reportCanvasHost .report-sub{color:var(--muted);font-size:.82rem;margin-bottom:18px;}
+#reportCanvasHost .report-row{
+display:flex;
+justify-content:space-between;
+padding:10px 0;
+border-bottom:1px solid var(--border);
+font-size:.88rem;
+}
+#reportCanvasHost .report-row strong{font-weight:700;}
+#reportCanvasHost .report-total{
+display:flex;
+justify-content:space-between;
+padding-top:14px;
+margin-top:6px;
+font-size:1.05rem;
+font-weight:700;
+}
+#reportCanvasHost .report-footer{
+margin-top:20px;
+color:var(--muted);
+font-size:.75rem;
+}
+
 footer{
 text-align:center;
 color:var(--muted);
@@ -490,6 +588,14 @@ text-align:center;
         <div class="header-actions">
             <button id="darkModeBtn" class="btn">Dark mode</button>
             <button onclick="printDashboard()" class="btn">Print</button>
+            <div class="reports-menu admin-only">
+                <button class="btn" onclick="toggleReportsMenu()">Reports</button>
+                <div class="reports-dropdown" id="reportsDropdown">
+                    <button onclick="downloadInterestDueReport()">Interest Due report</button>
+                    <button onclick="downloadOverdueReport()">Overdue report</button>
+                    <button onclick="downloadCombinedStatement()">Combined statement</button>
+                </div>
+            </div>
             <button id="loginBtn" class="btn" onclick="openLoginModal()">Admin login</button>
         </div>
     </header>
@@ -523,7 +629,10 @@ text-align:center;
 
     <section class="loans-section">
 
-        <h2>Loans</h2>
+        <div class="section-header-row">
+            <h2>Loans</h2>
+            <button class="btn btn-primary admin-only" onclick="openLoanForm('add')">+ Add loan</button>
+        </div>
 
         <div class="filter-bar" id="filterBar">
             <button class="filter-btn active" data-filter="all">All</button>
@@ -571,12 +680,68 @@ text-align:center;
     </div>
 </div>
 
+<div id="loanFormModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeLoanForm()">&times;</span>
+        <h2 id="loanFormTitle">Add loan</h2>
+        <form id="loanForm" onsubmit="handleLoanFormSubmit(event)" style="margin-top:15px;">
+            <input type="hidden" id="loanFormId">
+            <label>Name</label>
+            <input type="text" id="loanFormName" required placeholder="e.g. Opay Loan">
+
+            <div class="form-row">
+                <div>
+                    <label>Type</label>
+                    <select id="loanFormType" onchange="renderLoanFormFields()">
+                        <option value="monthly">Monthly interest</option>
+                        <option value="weekly">Weekly plan</option>
+                        <option value="lump_sum">One-time / lump sum</option>
+                        <option value="daily">Daily rate</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Status</label>
+                    <select id="loanFormStatus">
+                        <option value="active">Active</option>
+                        <option value="closed">Closed</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div>
+                    <label>Date given</label>
+                    <input type="date" id="loanFormDateGiven">
+                </div>
+                <div>
+                    <label>Due date</label>
+                    <input type="date" id="loanFormDueDate" required>
+                </div>
+            </div>
+
+            <div id="loanFormFields"></div>
+
+            <label>Note</label>
+            <textarea id="loanFormNote" placeholder="Optional details shown in 'View details'"></textarea>
+
+            <label>Internal note <span style="font-weight:600;">(private — admin only, never shown publicly)</span></label>
+            <textarea id="loanFormAdminNote" placeholder="Private notes only you can see"></textarea>
+
+            <div id="loanFormError" style="color:var(--danger);font-size:.82rem;margin-bottom:10px;"></div>
+            <button type="submit" class="btn btn-primary" style="width:100%;">Save loan</button>
+        </form>
+    </div>
+</div>
+
+<div id="reportCanvasHost"></div>
+
 <footer>
     <p>RoseMary Idire Loan Dashboard</p>
     <p id="lastUpdated"></p>
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script>
 
 const SUPABASE_URL = "https://ojnzoyytbleujxrubosy.supabase.co";
@@ -682,8 +847,10 @@ const status = getStatus(loan.dueDate);
 return { ...lump, overdue:status.overdue, days:status.days };
 }
 
+const PUBLIC_LOAN_COLUMNS = "id, name, repayment_type, status, due_date, principal, principal_paid, monthly_interest, paid, expected_total, daily_rate, last_payment_date, last_payment_for_month, note, created_at, updated_at";
+
 async function loadLoans(){
-const { data, error } = await supabaseClient.from("loans").select("*");
+const { data, error } = await supabaseClient.from("loans").select(PUBLIC_LOAN_COLUMNS);
 if(error){ console.error("loans load error:", error); loans = []; return; }
 loans = (data || []).map(row => ({
 id: row.id,
@@ -701,6 +868,179 @@ lastPayment: row.last_payment_date ? { date: row.last_payment_date, forMonth: ro
 note: row.note || ""
 }));
 }
+
+/* ==========================================
+ADMIN WRITE LAYER (Phase C)
+========================================== */
+
+const TYPE_FIELD_CONFIG = {
+monthly: [
+{ id:"principal", label:"Principal", type:"number", required:true },
+{ id:"principal_paid", label:"Principal paid", type:"number", required:false },
+{ id:"monthly_interest", label:"Monthly interest", type:"number", required:true }
+],
+weekly: [
+{ id:"principal", label:"Principal", type:"number", required:true },
+{ id:"expected_total", label:"Expected total (principal + interest)", type:"number", required:true },
+{ id:"paid", label:"Paid so far", type:"number", required:false }
+],
+lump_sum: [
+{ id:"principal", label:"Principal", type:"number", required:true },
+{ id:"expected_total", label:"Expected total", type:"number", required:true },
+{ id:"paid", label:"Paid so far", type:"number", required:false }
+],
+daily: [
+{ id:"principal", label:"Principal", type:"number", required:true },
+{ id:"expected_total", label:"Expected total", type:"number", required:true },
+{ id:"paid", label:"Paid so far", type:"number", required:false },
+{ id:"daily_rate", label:"Daily rate (reference only)", type:"number", required:false }
+]
+};
+
+function renderLoanFormFields(existingValues){
+const type = document.getElementById("loanFormType").value;
+const fields = TYPE_FIELD_CONFIG[type];
+const container = document.getElementById("loanFormFields");
+const vals = existingValues || {};
+container.innerHTML = fields.map(f => `
+<label>${f.label}</label>
+<input type="${f.type}" step="any" id="loanField_${f.id}" ${f.required ? "required" : ""}
+value="${vals[f.id] !== undefined && vals[f.id] !== null ? vals[f.id] : ""}">
+`).join("");
+}
+
+async function openLoanForm(mode, id){
+document.getElementById("loanForm").reset();
+document.getElementById("loanFormError").textContent = "";
+document.getElementById("loanFormId").value = "";
+document.getElementById("loanFormAdminNote").value = "";
+
+if(mode === "edit"){
+const loan = loans.find(l => l.id === id);
+if(!loan) return;
+document.getElementById("loanFormTitle").textContent = "Edit loan";
+document.getElementById("loanFormId").value = loan.id;
+document.getElementById("loanFormName").value = loan.name;
+document.getElementById("loanFormType").value = loan.type;
+document.getElementById("loanFormStatus").value = loan.status;
+document.getElementById("loanFormDueDate").value = loan.dueDate;
+document.getElementById("loanFormNote").value = loan.note || "";
+renderLoanFormFields({
+principal: loan.principal,
+principal_paid: loan.principalPaid,
+monthly_interest: loan.monthlyInterest,
+expected_total: loan.expectedTotal,
+paid: loan.paid,
+daily_rate: loan.dailyRate
+});
+
+document.getElementById("loanFormModal").style.display = "block";
+
+// date_given and admin_note are deliberately excluded from the main loans
+// query — fetch them separately here, only when an admin opens edit for this one loan.
+const { data, error } = await supabaseClient.from("loans").select("date_given, admin_note").eq("id", id).single();
+if(!error && data){
+document.getElementById("loanFormDateGiven").value = data.date_given || "";
+document.getElementById("loanFormAdminNote").value = data.admin_note || "";
+}
+return;
+}else{
+document.getElementById("loanFormTitle").textContent = "Add loan";
+document.getElementById("loanFormType").value = "monthly";
+document.getElementById("loanFormStatus").value = "active";
+renderLoanFormFields();
+}
+
+document.getElementById("loanFormModal").style.display = "block";
+}
+
+function closeLoanForm(){
+document.getElementById("loanFormModal").style.display = "none";
+}
+
+async function handleLoanFormSubmit(event){
+event.preventDefault();
+const errorEl = document.getElementById("loanFormError");
+errorEl.textContent = "";
+
+const id = document.getElementById("loanFormId").value;
+const type = document.getElementById("loanFormType").value;
+const fields = TYPE_FIELD_CONFIG[type];
+
+const record = {
+name: document.getElementById("loanFormName").value.trim(),
+repayment_type: type,
+status: document.getElementById("loanFormStatus").value,
+due_date: document.getElementById("loanFormDueDate").value,
+date_given: document.getElementById("loanFormDateGiven").value || null,
+note: document.getElementById("loanFormNote").value.trim() || null,
+admin_note: document.getElementById("loanFormAdminNote").value.trim() || null,
+principal: 0,
+principal_paid: null,
+monthly_interest: null,
+expected_total: null,
+paid: null,
+daily_rate: null
+};
+
+fields.forEach(f => {
+const raw = document.getElementById(`loanField_${f.id}`).value;
+record[f.id] = raw === "" ? (f.required ? 0 : null) : Number(raw);
+});
+
+let error;
+if(id){
+({ error } = await supabaseClient.from("loans").update(record).eq("id", id));
+}else{
+({ error } = await supabaseClient.from("loans").insert(record));
+}
+
+if(error){
+errorEl.textContent = "Save failed: " + error.message;
+return;
+}
+
+closeLoanForm();
+await refreshDashboard();
+}
+
+async function handleToggleCloseLoan(id){
+const loan = loans.find(l => l.id === id);
+if(!loan) return;
+const nextStatus = loan.status === "closed" ? "active" : "closed";
+const verb = nextStatus === "closed" ? "close" : "reopen";
+if(!confirm(`Mark "${loan.name}" as ${nextStatus}? This ${verb}s the loan but keeps it in the system.`)) return;
+
+const { error } = await supabaseClient.from("loans").update({ status: nextStatus }).eq("id", id);
+if(error){ alert("Failed to update status: " + error.message); return; }
+await refreshDashboard();
+}
+
+async function handleDeleteLoan(id){
+const loan = loans.find(l => l.id === id);
+if(!loan) return;
+if(!confirm(`Permanently delete "${loan.name}"? This cannot be undone. Use "Close" instead if it's just fully paid off.`)) return;
+if(!confirm(`Are you absolutely sure? This will permanently remove "${loan.name}" and its history.`)) return;
+
+const { error } = await supabaseClient.from("loans").delete().eq("id", id);
+if(error){ alert("Failed to delete: " + error.message); return; }
+await refreshDashboard();
+}
+
+async function refreshDashboard(){
+await loadLoans();
+renderSummary();
+renderLoanGrid();
+renderTimeline();
+document.getElementById("lastUpdated").textContent = "Last loaded: " + new Date().toLocaleString();
+}
+
+window.openLoanForm = openLoanForm;
+window.closeLoanForm = closeLoanForm;
+window.renderLoanFormFields = renderLoanFormFields;
+window.handleLoanFormSubmit = handleLoanFormSubmit;
+window.handleToggleCloseLoan = handleToggleCloseLoan;
+window.handleDeleteLoan = handleDeleteLoan;
 
 function typeLabel(type){
 return { monthly:"Monthly interest", weekly:"Weekly plan", lump_sum:"One-time", daily:"Daily rate" }[type] || type;
@@ -785,6 +1125,11 @@ ${details}
 ${lastPaymentLine}
 <div class="card-footer">
 <button class="link-btn" onclick="showNote('${loan.id}')">View details</button>
+<div class="card-icon-actions admin-only">
+<button class="icon-btn" title="Edit" onclick="openLoanForm('edit','${loan.id}')">&#9998;</button>
+<button class="icon-btn" title="${loan.status==='closed'?'Reopen':'Close'}" onclick="handleToggleCloseLoan('${loan.id}')">${loan.status==='closed' ? '&#8635;' : '&#10003;'}</button>
+<button class="icon-btn danger" title="Delete" onclick="handleDeleteLoan('${loan.id}')">&#128465;</button>
+</div>
 </div>
 </div>
 `;
@@ -925,6 +1270,7 @@ function isAdmin(){ return !!currentSession; }
 
 function setAdminUI(){
 const loginBtn = document.getElementById("loginBtn");
+document.body.classList.toggle("is-admin", isAdmin());
 if(isAdmin()){
 loginBtn.textContent = "Logout (admin)";
 loginBtn.onclick = handleLogout;
@@ -932,6 +1278,7 @@ loginBtn.onclick = handleLogout;
 loginBtn.textContent = "Admin login";
 loginBtn.onclick = openLoginModal;
 }
+renderLoanGrid();
 }
 
 function openLoginModal(){
@@ -985,6 +1332,104 @@ window.print();
 }
 
 window.printDashboard = printDashboard;
+
+/* ==========================================
+PNG REPORTS (Phase C)
+========================================== */
+
+function toggleReportsMenu(){
+document.getElementById("reportsDropdown").classList.toggle("open");
+}
+
+document.addEventListener("click", (e) => {
+const menu = document.querySelector(".reports-menu");
+const dropdown = document.getElementById("reportsDropdown");
+if(menu && dropdown && !menu.contains(e.target)){
+dropdown.classList.remove("open");
+}
+});
+
+function activeLoansSnapshot(){
+const today = new Date();
+return loans
+.filter(l => l.status === "active")
+.map(l => ({ loan: l, m: computeMetrics(l, today) }));
+}
+
+async function renderReportToPNG(title, subtitle, rows, totalLabel, totalValue, filename){
+const host = document.getElementById("reportCanvasHost");
+host.innerHTML = `
+<h2>${title}</h2>
+<div class="report-sub">${subtitle}</div>
+${rows.map(r => `<div class="report-row"><span>${r.label}</span><strong>${r.value}</strong></div>`).join("")}
+${totalLabel ? `<div class="report-total"><span>${totalLabel}</span><span>${totalValue}</span></div>` : ""}
+<div class="report-footer">RoseMary Idire Loan Dashboard — generated ${new Date().toLocaleString()}</div>
+`;
+const canvas = await html2canvas(host, { backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--card').trim() || '#ffffff', scale: 2 });
+
+const link = document.createElement("a");
+link.download = filename;
+link.href = canvas.toDataURL("image/png");
+link.click();
+}
+
+async function downloadInterestDueReport(){
+toggleReportsMenu();
+const snapshot = activeLoansSnapshot().filter(({loan}) => loan.type === "monthly");
+if(snapshot.length === 0){ alert("No monthly-interest loans to report on."); return; }
+let total = 0;
+const rows = snapshot.map(({loan, m}) => {
+total += m.interestDue;
+return { label: loan.name, value: money(m.interestDue) };
+});
+await renderReportToPNG(
+"Interest Due Report",
+"Live-calculated interest currently due, by monthly-interest loan",
+rows, "Total interest due", money(total),
+`interest-due-report-${new Date().toISOString().slice(0,10)}.png`
+);
+}
+
+async function downloadOverdueReport(){
+toggleReportsMenu();
+const snapshot = activeLoansSnapshot().filter(({m}) => m.overdue);
+if(snapshot.length === 0){ alert("No overdue loans right now."); return; }
+snapshot.sort((a,b) => (b.m.days||0) - (a.m.days||0));
+let total = 0;
+const rows = snapshot.map(({loan, m}) => {
+total += m.repaymentOutstanding;
+const overdueText = loan.type === "monthly" ? "Overdue" : `Overdue (${m.days} day${m.days!==1?'s':''})`;
+return { label: `${loan.name} — ${overdueText}`, value: money(m.repaymentOutstanding) };
+});
+await renderReportToPNG(
+"Overdue Loans Report",
+"All currently overdue loans, sorted most overdue first",
+rows, "Total overdue repayment", money(total),
+`overdue-report-${new Date().toISOString().slice(0,10)}.png`
+);
+}
+
+async function downloadCombinedStatement(){
+toggleReportsMenu();
+const snapshot = activeLoansSnapshot();
+if(snapshot.length === 0){ alert("No active loans to report on."); return; }
+let total = 0;
+const rows = snapshot.map(({loan, m}) => {
+total += m.repaymentOutstanding;
+return { label: loan.name, value: money(m.repaymentOutstanding) };
+});
+await renderReportToPNG(
+"Combined Statement",
+"Repayment outstanding across every active loan",
+rows, "Total still owed", money(total),
+`combined-statement-${new Date().toISOString().slice(0,10)}.png`
+);
+}
+
+window.toggleReportsMenu = toggleReportsMenu;
+window.downloadInterestDueReport = downloadInterestDueReport;
+window.downloadOverdueReport = downloadOverdueReport;
+window.downloadCombinedStatement = downloadCombinedStatement;
 
 /* ==========================================
 INIT
