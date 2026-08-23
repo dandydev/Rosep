@@ -555,6 +555,27 @@ color:var(--muted);
 font-size:.75rem;
 }
 
+.toast{
+position:fixed;
+bottom:24px;
+left:50%;
+transform:translateX(-50%) translateY(20px);
+background:var(--text);
+color:var(--card);
+padding:10px 20px;
+border-radius:20px;
+font-size:.85rem;
+font-weight:600;
+opacity:0;
+pointer-events:none;
+transition:opacity .25s ease, transform .25s ease;
+z-index:999;
+}
+.toast.show{
+opacity:1;
+transform:translateX(-50%) translateY(0);
+}
+
 footer{
 text-align:center;
 color:var(--muted);
@@ -594,6 +615,7 @@ text-align:center;
                     <button onclick="downloadInterestDueReport()">Interest Due report</button>
                     <button onclick="downloadOverdueReport()">Overdue report</button>
                     <button onclick="downloadCombinedStatement()">Combined statement</button>
+                    <button onclick="downloadStalePaymentsReport()">Stale payments report</button>
                 </div>
             </div>
             <button id="loginBtn" class="btn" onclick="openLoginModal()">Admin login</button>
@@ -729,7 +751,8 @@ text-align:center;
                     <input type="month" id="loanFormLastPaymentMonth">
                 </div>
             </div>
-            <div style="font-size:.75rem;color:var(--muted);margin-top:-8px;margin-bottom:12px;">Month auto-fills from the date — edit it separately only for unusual cases.</div>
+            <div style="font-size:.75rem;color:var(--muted);margin-top:-8px;margin-bottom:6px;">Month auto-fills from the date — edit it separately only for unusual cases.</div>
+            <button type="button" class="link-btn" onclick="clearLastPayment()" style="margin-bottom:14px;">Clear last payment</button>
 
             <div id="loanFormFields"></div>
 
@@ -746,6 +769,7 @@ text-align:center;
 </div>
 
 <div id="reportCanvasHost"></div>
+<div id="toast" class="toast"></div>
 
 <footer>
     <p>RoseMary Idire Loan Dashboard</p>
@@ -916,7 +940,13 @@ document.getElementById("loanFormLastPaymentMonth").value = dateVal.slice(0,7);
 }
 }
 
+function clearLastPayment(){
+document.getElementById("loanFormLastPaymentDate").value = "";
+document.getElementById("loanFormLastPaymentMonth").value = "";
+}
+
 window.syncPaymentMonth = syncPaymentMonth;
+window.clearLastPayment = clearLastPayment;
 
 function renderLoanFormFields(existingValues){
 const type = document.getElementById("loanFormType").value;
@@ -1030,6 +1060,7 @@ return;
 
 closeLoanForm();
 await refreshDashboard();
+showToast(id ? "Loan updated" : "Loan added");
 }
 
 async function handleToggleCloseLoan(id){
@@ -1042,6 +1073,7 @@ if(!confirm(`Mark "${loan.name}" as ${nextStatus}? This ${verb}s the loan but ke
 const { error } = await supabaseClient.from("loans").update({ status: nextStatus }).eq("id", id);
 if(error){ alert("Failed to update status: " + error.message); return; }
 await refreshDashboard();
+showToast(nextStatus === "closed" ? "Loan closed" : "Loan reopened");
 }
 
 async function handleDeleteLoan(id){
@@ -1053,6 +1085,16 @@ if(!confirm(`Are you absolutely sure? This will permanently remove "${loan.name}
 const { error } = await supabaseClient.from("loans").delete().eq("id", id);
 if(error){ alert("Failed to delete: " + error.message); return; }
 await refreshDashboard();
+showToast("Loan deleted");
+}
+
+let toastTimer;
+function showToast(message){
+const toast = document.getElementById("toast");
+toast.textContent = message;
+toast.classList.add("show");
+clearTimeout(toastTimer);
+toastTimer = setTimeout(() => toast.classList.remove("show"), 2200);
 }
 
 async function refreshDashboard(){
@@ -1417,6 +1459,39 @@ link.href = canvas.toDataURL("image/png");
 link.click();
 }
 
+function monthsBehind(loan){
+if(!loan.lastPayment || !loan.lastPayment.forMonth) return null;
+const [y, m] = loan.lastPayment.forMonth.split("-").map(Number);
+const now = new Date();
+return (now.getFullYear() - y) * 12 + ((now.getMonth() + 1) - m);
+}
+
+async function downloadStalePaymentsReport(){
+toggleReportsMenu();
+const snapshot = loans
+.filter(l => l.status === "active")
+.map(l => ({ loan: l, behind: monthsBehind(l) }))
+.filter(({behind}) => behind === null || behind >= 1);
+
+if(snapshot.length === 0){ alert("No stale payments — everyone is current."); return; }
+
+snapshot.sort((a, b) => (b.behind === null ? 999 : b.behind) - (a.behind === null ? 999 : a.behind));
+
+const rows = snapshot.map(({loan, behind}) => ({
+label: loan.name,
+value: behind === null ? "No payment recorded" : `${behind} month${behind !== 1 ? 's' : ''} behind`
+}));
+
+await renderReportToPNG(
+"Stale Payments Report",
+"Active loans with no recent payment logged — independent of due-date status",
+rows, null, null,
+`stale-payments-report-${new Date().toISOString().slice(0,10)}.png`
+);
+}
+
+window.downloadStalePaymentsReport = downloadStalePaymentsReport;
+
 async function downloadInterestDueReport(){
 toggleReportsMenu();
 const snapshot = activeLoansSnapshot().filter(({loan}) => loan.type === "monthly");
@@ -1496,6 +1571,28 @@ document.getElementById("lastUpdated").textContent =
 }
 
 initDashboard();
+
+/* ==========================================
+REALTIME (Phase D)
+========================================== */
+
+let realtimeDebounce;
+function handleRealtimeChange(){
+clearTimeout(realtimeDebounce);
+realtimeDebounce = setTimeout(async () => {
+await loadLoans();
+if(isAdmin()) await loadAdminDateGiven();
+renderSummary();
+renderLoanGrid();
+renderTimeline();
+document.getElementById("lastUpdated").textContent = "Last loaded: " + new Date().toLocaleString();
+}, 400);
+}
+
+supabaseClient
+.channel("loans-realtime")
+.on("postgres_changes", { event: "*", schema: "public", table: "loans" }, handleRealtimeChange)
+.subscribe();
 
 </script>
 </body>
