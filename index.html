@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Loan Monitoring Dashboard</title>
+<style>
+
+*{box-sizing:border-box;margin:0;padding:0;}
+
+:root{
+--bg:#f6f7f9;
+--card:#ffffff;
+--text:#1a1d23;
+--muted:#6b7280;
+--border:#e5e7eb;
+--primary:#2563eb;
+--danger:#dc2626;
+--success:#16a34a;
+--warning:#d97706;
+--shadow:0 1px 2px rgba(0,0,0,.04),0 1px 6px rgba(0,0,0,.04);
+--radius:14px;
+}
+
+[data-theme="dark"]{
+--bg:#0f1115;
+--card:#181b21;
+--text:#f3f4f6;
+--muted:#9aa1ac;
+--border:#2a2e37;
+--shadow:0 1px 2px rgba(0,0,0,.3),0 1px 8px rgba(0,0,0,.3);
+}
+
+body{
+font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+background:var(--bg);
+color:var(--text);
+line-height:1.5;
+transition:background .2s,color .2s;
+}
+
+.container{
+max-width:1200px;
+margin:0 auto;
+padding:24px 20px 60px;
+}
+
+.dashboard-header{
+display:flex;
+justify-content:space-between;
+align-items:flex-start;
+flex-wrap:wrap;
+gap:16px;
+margin-bottom:28px;
+}
+
+.dashboard-header h1{
+font-size:1.5rem;
+font-weight:700;
+letter-spacing:-.01em;
+}
+
+.dashboard-header h2{
+font-size:1.05rem;
+font-weight:600;
+color:var(--primary);
+margin-top:2px;
+}
+
+.dashboard-header p{
+color:var(--muted);
+font-size:.85rem;
+margin-top:2px;
+}
+
+.header-actions{
+display:flex;
+gap:8px;
+flex-wrap:wrap;
+}
+
+.btn{
+border:1px solid var(--border);
+background:var(--card);
+color:var(--text);
+padding:8px 14px;
+border-radius:10px;
+font-size:.85rem;
+cursor:pointer;
+font-weight:500;
+transition:background .15s,transform .1s;
+}
+
+.btn:hover{background:var(--bg);}
+.btn:active{transform:scale(.97);}
+
+.btn-primary{
+background:var(--primary);
+border-color:var(--primary);
+color:#fff;
+}
+
+.summary-grid{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+gap:14px;
+margin-bottom:24px;
+}
+
+.summary-card{
+background:var(--card);
+border:1px solid var(--border);
+border-radius:var(--radius);
+box-shadow:var(--shadow);
+padding:18px 20px;
+}
+
+.summary-card h3{
+font-size:.78rem;
+font-weight:600;
+color:var(--muted);
+text-transform:uppercase;
+letter-spacing:.03em;
+margin-bottom:6px;
+}
+
+.summary-card .value{
+font-size:1.5rem;
+font-weight:700;
+letter-spacing:-.01em;
+}
+
+.summary-hint{
+font-size:.72rem;
+color:var(--muted);
+margin-top:4px;
+line-height:1.4;
+}
+
+.breakdown-toggle{
+background:none;
+border:none;
+color:var(--primary);
+font-size:.75rem;
+font-weight:600;
+cursor:pointer;
+padding:0;
+margin-top:4px;
+}
+
+.breakdown-list{
+display:none;
+margin-top:10px;
+border-top:1px solid var(--border);
+padding-top:8px;
+max-height:220px;
+overflow-y:auto;
+}
+
+.breakdown-row{
+display:flex;
+justify-content:space-between;
+font-size:.78rem;
+padding:4px 0;
+color:var(--muted);
+}
+
+.breakdown-row strong{
+color:var(--text);
+font-weight:600;
+}
+
+.filter-bar{
+display:flex;
+gap:8px;
+margin-bottom:18px;
+flex-wrap:wrap;
+}
+
+.filter-btn{
+border:1px solid var(--border);
+background:var(--card);
+color:var(--muted);
+padding:7px 16px;
+border-radius:999px;
+font-size:.82rem;
+font-weight:600;
+cursor:pointer;
+}
+
+.filter-btn.active{
+background:var(--primary);
+border-color:var(--primary);
+color:#fff;
+}
+
+.loan-grid{
+display:grid;
+grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
+gap:12px;
+margin-bottom:28px;
+}
+
+.loan-card{
+background:var(--card);
+border:1px solid var(--border);
+border-radius:12px;
+box-shadow:var(--shadow);
+padding:14px 16px;
+display:flex;
+flex-direction:column;
+gap:7px;
+position:relative;
+transition:box-shadow .3s ease;
+}
+
+.loan-card.overdue{
+border:1.5px solid transparent;
+background:
+linear-gradient(var(--card),var(--card)) padding-box,
+linear-gradient(120deg,var(--danger),#f97316,var(--danger)) border-box;
+background-size:100% 100%,220% 220%;
+animation:overdueBorderShift 6s ease infinite,overdueGlow 3.2s ease-in-out infinite;
+}
+
+@keyframes overdueBorderShift{
+0%{background-position:0% 0%,0% 50%;}
+50%{background-position:0% 0%,100% 50%;}
+100%{background-position:0% 0%,0% 50%;}
+}
+
+@keyframes overdueGlow{
+0%,100%{box-shadow:var(--shadow),0 0 0 rgba(220,38,38,0);}
+50%{box-shadow:var(--shadow),0 0 14px rgba(220,38,38,.28);}
+}
+
+.months-badge{
+display:inline-flex;
+align-items:center;
+gap:4px;
+background:var(--danger);
+color:#fff;
+font-size:.7rem;
+font-weight:700;
+padding:2px 9px;
+border-radius:999px;
+width:fit-content;
+}
+
+.loan-card-top{
+display:flex;
+justify-content:space-between;
+align-items:flex-start;
+gap:8px;
+}
+
+.loan-name{
+font-size:.95rem;
+font-weight:700;
+line-height:1.25;
+}
+
+.type-badge{
+display:inline-block;
+font-size:.65rem;
+font-weight:700;
+text-transform:uppercase;
+letter-spacing:.03em;
+padding:2px 8px;
+border-radius:999px;
+white-space:nowrap;
+}
+
+.type-monthly{background:#dbeafe;color:#1e40af;}
+.type-weekly{background:#dcfce7;color:#166534;}
+.type-lump_sum{background:#fef3c7;color:#92400e;}
+.type-daily{background:#ede9fe;color:#5b21b6;}
+
+[data-theme="dark"] .type-monthly{background:#1e3a8a55;color:#93c5fd;}
+[data-theme="dark"] .type-weekly{background:#14532d55;color:#86efac;}
+[data-theme="dark"] .type-lump_sum{background:#78350f55;color:#fcd34d;}
+[data-theme="dark"] .type-daily{background:#4c1d9555;color:#c4b5fd;}
+
+.due-line{
+font-size:.75rem;
+color:var(--muted);
+}
+
+.status-pill{
+font-size:.72rem;
+font-weight:600;
+}
+
+.status-overdue{color:var(--danger);}
+.status-upcoming{color:var(--success);}
+.status-today{color:var(--warning);}
+
+.highlight-box{
+background:var(--bg);
+border-radius:8px;
+padding:7px 12px;
+}
+
+.highlight-box .label{
+font-size:.68rem;
+color:var(--muted);
+text-transform:uppercase;
+letter-spacing:.03em;
+}
+
+.highlight-box .amount{
+font-size:1.1rem;
+font-weight:700;
+}
+
+.detail-row{
+display:flex;
+justify-content:space-between;
+font-size:.78rem;
+color:var(--muted);
+}
+
+.detail-row strong{
+color:var(--text);
+font-weight:600;
+}
+
+.progress-track{
+height:6px;
+background:var(--bg);
+border-radius:999px;
+overflow:hidden;
+}
+
+.progress-fill{
+height:100%;
+background:var(--success);
+border-radius:999px;
+}
+
+.card-footer{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-top:4px;
+}
+
+.icon-btn{
+border:none;
+background:none;
+cursor:pointer;
+font-size:1rem;
+color:var(--muted);
+padding:4px;
+}
+
+.icon-btn.danger{color:var(--danger);}
+
+.link-btn{
+border:none;
+background:none;
+color:var(--primary);
+font-size:.82rem;
+font-weight:600;
+cursor:pointer;
+padding:0;
+}
+
+.closed-toggle{
+display:flex;
+align-items:center;
+gap:6px;
+background:none;
+border:none;
+color:var(--muted);
+font-size:.85rem;
+font-weight:600;
+cursor:pointer;
+margin-bottom:14px;
+}
+
+.timeline-section h2, .loans-section h2{
+font-size:1.05rem;
+font-weight:700;
+margin-bottom:14px;
+}
+
+.timeline{
+display:flex;
+flex-direction:column;
+gap:10px;
+}
+
+.timeline-item{
+display:flex;
+gap:12px;
+align-items:center;
+background:var(--card);
+border:1px solid var(--border);
+border-radius:10px;
+padding:10px 14px;
+font-size:.85rem;
+}
+
+.timeline-dot{
+width:8px;
+height:8px;
+border-radius:50%;
+background:var(--primary);
+flex-shrink:0;
+}
+
+.timeline-dot.overdue{background:var(--danger);}
+
+.modal{
+display:none;
+position:fixed;
+inset:0;
+background:rgba(0,0,0,.5);
+z-index:999;
+}
+
+.modal-content{
+background:var(--card);
+color:var(--text);
+width:90%;
+max-width:520px;
+margin:8% auto;
+padding:24px;
+border-radius:16px;
+position:relative;
+}
+
+.close{
+position:absolute;
+top:10px;
+right:16px;
+font-size:28px;
+cursor:pointer;
+color:var(--muted);
+}
+
+.modal-content input{
+width:100%;
+padding:10px;
+border-radius:8px;
+border:1px solid var(--border);
+background:var(--bg);
+color:var(--text);
+margin-bottom:12px;
+}
+
+.modal-content label{
+display:block;
+font-size:.82rem;
+margin-bottom:5px;
+color:var(--muted);
+}
+
+footer{
+text-align:center;
+color:var(--muted);
+font-size:.8rem;
+padding:30px 0 10px;
+}
+
+.empty-state{
+color:var(--muted);
+font-size:.9rem;
+padding:20px 0;
+text-align:center;
+}
+
+@media print{
+.header-actions, .filter-bar, .icon-btn, .closed-toggle{display:none;}
+}
+
+</style>
+</head>
+<body>
+
+<div class="container">
+
+    <header class="dashboard-header">
+        <div>
+            <h1>Loan Monitoring Dashboard</h1>
+            <h2 id="borrowerName">RoseMary Idire</h2>
+            <p>Professional loan tracking &amp; monitoring portal</p>
+        </div>
+        <div class="header-actions">
+            <button id="darkModeBtn" class="btn">Dark mode</button>
+            <button onclick="printDashboard()" class="btn">Print</button>
+            <button id="loginBtn" class="btn" onclick="openLoginModal()">Admin login</button>
+        </div>
+    </header>
+
+    <section class="summary-grid">
+        <div class="summary-card">
+            <h3>Total still owed</h3>
+            <div class="value" id="totalRepayment">₦0</div>
+            <p class="summary-hint">Capital plus interest combined — what it would take to fully clear everything.</p>
+            <button class="breakdown-toggle" onclick="toggleBreakdown('repayment')">View breakdown</button>
+            <div class="breakdown-list" id="repaymentBreakdown"></div>
+        </div>
+        <div class="summary-card">
+            <h3>Capital still owed</h3>
+            <div class="value" id="totalPrincipal">₦0</div>
+            <p class="summary-hint">Just the money lent out that hasn't been paid back yet — interest not included.</p>
+            <button class="breakdown-toggle" onclick="toggleBreakdown('principal')">View breakdown</button>
+            <div class="breakdown-list" id="principalBreakdown"></div>
+        </div>
+        <div class="summary-card">
+            <h3>Overdue interest</h3>
+            <div class="value" id="overdueInterest">₦0</div>
+            <p class="summary-hint">Interest that's currently late, across all overdue loans.</p>
+        </div>
+        <div class="summary-card">
+            <h3>Active loans</h3>
+            <div class="value" id="activeCount">0</div>
+            <p class="summary-hint">Loans currently being tracked (closed ones don't count).</p>
+        </div>
+    </section>
+
+    <section class="loans-section">
+
+        <h2>Loans</h2>
+
+        <div class="filter-bar" id="filterBar">
+            <button class="filter-btn active" data-filter="all">All</button>
+            <button class="filter-btn" data-filter="overdue">Overdue</button>
+            <button class="filter-btn" data-filter="upcoming">Upcoming</button>
+        </div>
+
+        <div id="loanGrid" class="loan-grid"></div>
+
+        <button id="closedToggle" class="closed-toggle" onclick="toggleClosed()">
+            Closed loans (<span id="closedCount">0</span>) &#9662;
+        </button>
+
+        <div id="closedGrid" class="loan-grid" style="display:none;"></div>
+
+    </section>
+
+    <section class="timeline-section">
+        <h2>Loan timeline</h2>
+        <div id="timeline" class="timeline"></div>
+    </section>
+
+</div>
+
+<div id="noteModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeNote()">&times;</span>
+        <h2 id="noteModalTitle">Loan details</h2>
+        <div id="noteText" style="margin-top:12px;font-size:.88rem;white-space:pre-wrap;"></div>
+    </div>
+</div>
+
+<div id="loginModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeLoginModal()">&times;</span>
+        <h2>Admin login</h2>
+        <form onsubmit="handleLogin(event)" style="margin-top:15px;">
+            <label>Email</label>
+            <input type="email" id="loginEmail" required>
+            <label>Password</label>
+            <input type="password" id="loginPassword" required>
+            <div id="loginError" style="color:var(--danger);font-size:.82rem;margin-bottom:10px;"></div>
+            <button type="submit" class="btn btn-primary" style="width:100%;">Log in</button>
+        </form>
+    </div>
+</div>
+
+<footer>
+    <p>RoseMary Idire Loan Dashboard</p>
+    <p id="lastUpdated"></p>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+
+const SUPABASE_URL = "https://ojnzoyytbleujxrubosy.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_sLnGF85Ftn32G2XT5SPJTA_zKTjAOxo";
+
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let loans = [];
+let currentSession = null;
+let currentFilter = "all";
+
+function money(value){
+return "₦" + Number(value || 0).toLocaleString();
+}
+
+function formatDate(date){
+return new Date(date).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+}
+
+function formatMonthYear(monthStr){
+const [year, month] = monthStr.split("-").map(Number);
+const d = new Date(year, month - 1, 1);
+return d.toLocaleString("en-US",{ month:"long", year:"numeric" });
+}
+
+function formatLastPayment(loan){
+if(!loan.lastPayment) return "";
+return `Last payment: ${formatDate(loan.lastPayment.date)} for ${formatMonthYear(loan.lastPayment.forMonth)}`;
+}
+
+function getStatus(date){
+const today = new Date(); today.setHours(0,0,0,0);
+const due = new Date(date); due.setHours(0,0,0,0);
+const diff = Math.floor((today - due) / 86400000);
+if(diff > 0) return { text:`Overdue (${diff} day${diff!==1?'s':''})`, overdue:true, days:diff };
+if(diff === 0) return { text:"Due today", overdue:false, today:true, days:0 };
+return { text:`${Math.abs(diff)} day${Math.abs(diff)!==1?'s':''} left`, overdue:false, days:Math.abs(diff) };
+}
+
+function addCalendarMonths(date, n){
+const d = new Date(date);
+const originalDay = d.getDate();
+d.setDate(1);
+d.setMonth(d.getMonth() + n);
+const daysInNewMonth = new Date(d.getFullYear(), d.getMonth()+1, 0).getDate();
+d.setDate(Math.min(originalDay, daysInNewMonth));
+return d;
+}
+
+function getCalendarOverdue(dueDateStr, today){
+const due = new Date(dueDateStr); due.setHours(0,0,0,0);
+const now = new Date(today); now.setHours(0,0,0,0);
+if(now <= due){
+const daysRemaining = Math.round((due - now) / 86400000);
+return { overdue:false, months:0, days:daysRemaining };
+}
+let months = 0;
+while(addCalendarMonths(due, months+1) <= now){ months++; }
+const anchor = addCalendarMonths(due, months);
+const days = Math.round((now - anchor) / 86400000);
+return { overdue:true, months, days };
+}
+
+function formatOverdueText(months, days){
+if(months > 0) return `${months} month${months>1?'s':''} (${days} day${days!==1?'s':''})`;
+return `${days} day${days!==1?'s':''} overdue`;
+}
+
+/* Monthly-type loans: interest re-accrues every
+   calendar month overdue. "paid" = interest paid
+   so far. Never manually overridden. */
+function computeMonthlyBreakdown(loan, today){
+const { overdue, months, days } = getCalendarOverdue(loan.dueDate, today);
+const paid = loan.paid || 0;
+if(!overdue){
+return { overdue:false, months, days, interestDue:loan.monthlyInterest, hasPaid:paid>0, paid };
+}
+const totalAccrued = loan.monthlyInterest * (months + 1);
+const interestDue = Math.max(totalAccrued - paid, 0);
+return { overdue:true, months, days, interestDue, hasPaid:paid>0, paid };
+}
+
+/* Weekly / lump_sum / daily: one combined
+   principal+interest figure, payments reduce
+   principal first. */
+function computeLumpMetrics(loan){
+const principalOutstanding = Math.max(0, loan.principal - loan.paid);
+const repaymentOutstanding = Math.max(0, (loan.expectedTotal || 0) - loan.paid);
+const progressPercent = loan.expectedTotal > 0 ?
+Math.min(100, Math.round((loan.paid / loan.expectedTotal) * 100)) : 0;
+return { principalOutstanding, repaymentOutstanding, progressPercent };
+}
+
+function computeMetrics(loan, today){
+if(loan.type === "monthly"){
+const b = computeMonthlyBreakdown(loan, today);
+const principalOutstanding = Math.max(0, loan.principal - (loan.principalPaid || 0));
+const repaymentOutstanding = principalOutstanding + b.interestDue;
+return { ...b, principalOutstanding, repaymentOutstanding, progressPercent:null };
+}
+const lump = computeLumpMetrics(loan);
+const status = getStatus(loan.dueDate);
+return { ...lump, overdue:status.overdue, days:status.days };
+}
+
+async function loadLoans(){
+const { data, error } = await supabaseClient.from("loans").select("*");
+if(error){ console.error("loans load error:", error); loans = []; return; }
+loans = (data || []).map(row => ({
+id: row.id,
+name: row.name,
+type: row.repayment_type,
+status: row.status,
+dueDate: row.due_date,
+principal: Number(row.principal),
+principalPaid: Number(row.principal_paid || 0),
+monthlyInterest: row.monthly_interest !== null ? Number(row.monthly_interest) : null,
+paid: Number(row.paid || 0),
+expectedTotal: row.expected_total !== null ? Number(row.expected_total) : null,
+dailyRate: row.daily_rate !== null ? Number(row.daily_rate) : null,
+lastPayment: row.last_payment_date ? { date: row.last_payment_date, forMonth: row.last_payment_for_month } : null,
+note: row.note || ""
+}));
+}
+
+function typeLabel(type){
+return { monthly:"Monthly interest", weekly:"Weekly plan", lump_sum:"One-time", daily:"Daily rate" }[type] || type;
+}
+
+function renderLoanCard(loan){
+const today = new Date();
+const m = computeMetrics(loan, today);
+
+const isMonthly = loan.type === "monthly";
+const monthsOverdueCount = (isMonthly && m.overdue) ? m.months + 1 : 0;
+
+const statusClass = m.overdue ? "status-overdue" : (m.days === 0 ? "status-today" : "status-upcoming");
+
+let statusText;
+if(isMonthly && m.overdue){
+statusText = `Overdue`;
+}else if(m.overdue){
+statusText = `Overdue (${m.days} day${m.days!==1?'s':''})`;
+}else if(m.days === 0){
+statusText = "Due today";
+}else{
+statusText = `${m.days} day${m.days!==1?'s':''} left`;
+}
+
+const monthsBadge = monthsOverdueCount >= 1 ?
+`<span class="months-badge">${monthsOverdueCount} month${monthsOverdueCount>1?'s':''} overdue</span>` : "";
+
+let highlight = "";
+let details = "";
+
+if(loan.type === "monthly"){
+highlight = `
+<div class="highlight-box">
+<div class="label">Interest due</div>
+<div class="amount">${money(m.interestDue)}</div>
+</div>`;
+details = `
+<div class="detail-row"><span>Principal</span><strong>${money(loan.principal)}</strong></div>
+${loan.principalPaid > 0 ? `<div class="detail-row"><span>Principal paid</span><strong>${money(loan.principalPaid)}</strong></div>` : ""}
+<div class="detail-row"><span>Monthly interest</span><strong>${money(loan.monthlyInterest)}</strong></div>
+`;
+}else if(loan.type === "weekly"){
+highlight = `
+<div class="highlight-box">
+<div class="label">Outstanding balance</div>
+<div class="amount">${money(m.repaymentOutstanding)}</div>
+</div>
+<div class="progress-track"><div class="progress-fill" style="width:${m.progressPercent}%"></div></div>
+<div class="detail-row"><span>${m.progressPercent}% paid</span><span>${money(loan.paid)} of ${money(loan.expectedTotal)}</span></div>
+`;
+details = `<div class="detail-row"><span>Principal</span><strong>${money(loan.principal)}</strong></div>`;
+}else{
+highlight = `
+<div class="highlight-box">
+<div class="label">${m.repaymentOutstanding > 0 ? "Outstanding" : "Fully paid"}</div>
+<div class="amount">${money(m.repaymentOutstanding)}</div>
+</div>`;
+details = `
+<div class="detail-row"><span>Principal</span><strong>${money(loan.principal)}</strong></div>
+<div class="detail-row"><span>Full repayment</span><strong>${money(loan.expectedTotal)}</strong></div>
+${loan.dailyRate ? `<div class="detail-row"><span>Daily rate</span><strong>${money(loan.dailyRate)}</strong></div>` : ""}
+`;
+}
+
+const lastPaymentLine = loan.lastPayment ?
+`<div class="detail-row"><span>${formatLastPayment(loan)}</span></div>` : "";
+
+return `
+<div class="loan-card ${m.overdue ? 'overdue' : ''}">
+<div class="loan-card-top">
+<div>
+<div class="loan-name">${loan.name}</div>
+<div class="due-line">Due ${formatDate(loan.dueDate)}</div>
+</div>
+<span class="type-badge type-${loan.type}">${typeLabel(loan.type)}</span>
+</div>
+${monthsBadge}
+<div class="status-pill ${statusClass}">${statusText}</div>
+${highlight}
+${details}
+${lastPaymentLine}
+<div class="card-footer">
+<button class="link-btn" onclick="showNote('${loan.id}')">View details</button>
+</div>
+</div>
+`;
+}
+
+function filteredActiveLoans(){
+const today = new Date();
+const active = loans.filter(l => l.status === "active");
+
+if(currentFilter === "overdue"){
+return active
+.filter(l => getStatus(l.dueDate).overdue)
+.sort((a,b) => getStatus(b.dueDate).days - getStatus(a.dueDate).days);
+}
+
+if(currentFilter === "upcoming"){
+return active
+.filter(l => !getStatus(l.dueDate).overdue)
+.sort((a,b) => new Date(a.dueDate) - new Date(b.dueDate));
+}
+
+return active.slice().sort((a,b) => new Date(a.dueDate) - new Date(b.dueDate));
+}
+
+function renderLoanGrid(){
+const grid = document.getElementById("loanGrid");
+const list = filteredActiveLoans();
+grid.innerHTML = list.length ?
+list.map(renderLoanCard).join("") :
+`<div class="empty-state">No loans match this filter.</div>`;
+
+const closed = loans.filter(l => l.status === "closed");
+document.getElementById("closedCount").textContent = closed.length;
+document.getElementById("closedGrid").innerHTML = closed.length ?
+closed.map(renderLoanCard).join("") :
+`<div class="empty-state">No closed loans yet.</div>`;
+}
+
+function toggleClosed(){
+const grid = document.getElementById("closedGrid");
+grid.style.display = grid.style.display === "none" ? "grid" : "none";
+}
+
+document.addEventListener("click", e=>{
+if(e.target.classList && e.target.classList.contains("filter-btn")){
+document.querySelectorAll(".filter-btn").forEach(b=>b.classList.remove("active"));
+e.target.classList.add("active");
+currentFilter = e.target.dataset.filter;
+renderLoanGrid();
+}
+});
+
+function renderSummary(){
+const today = new Date();
+let totalPrincipal = 0, totalRepayment = 0, overdueInterest = 0, activeCount = 0;
+const principalRows = [];
+const repaymentRows = [];
+
+loans.filter(l => l.status === "active").forEach(loan=>{
+const m = computeMetrics(loan, today);
+totalPrincipal += m.principalOutstanding;
+totalRepayment += m.repaymentOutstanding;
+activeCount++;
+if(m.principalOutstanding > 0){
+principalRows.push({ name: loan.name, value: m.principalOutstanding });
+}
+if(m.repaymentOutstanding > 0){
+repaymentRows.push({ name: loan.name, value: m.repaymentOutstanding });
+}
+if(m.overdue){
+if(loan.type === "monthly"){
+overdueInterest += m.interestDue;
+}else{
+overdueInterest += (m.repaymentOutstanding - m.principalOutstanding);
+}
+}
+});
+
+document.getElementById("totalPrincipal").textContent = money(totalPrincipal);
+document.getElementById("totalRepayment").textContent = money(totalRepayment);
+document.getElementById("overdueInterest").textContent = money(overdueInterest);
+document.getElementById("activeCount").textContent = activeCount;
+
+document.getElementById("principalBreakdown").innerHTML = principalRows.length ?
+principalRows.map(r => `<div class="breakdown-row"><span>${r.name}</span><strong>${money(r.value)}</strong></div>`).join("") :
+`<div class="breakdown-row"><span>Nothing outstanding.</span></div>`;
+
+document.getElementById("repaymentBreakdown").innerHTML = repaymentRows.length ?
+repaymentRows.map(r => `<div class="breakdown-row"><span>${r.name}</span><strong>${money(r.value)}</strong></div>`).join("") :
+`<div class="breakdown-row"><span>Nothing outstanding.</span></div>`;
+}
+
+function toggleBreakdown(kind){
+const el = document.getElementById(kind === "principal" ? "principalBreakdown" : "repaymentBreakdown");
+el.style.display = el.style.display === "block" ? "none" : "block";
+}
+
+window.toggleBreakdown = toggleBreakdown;
+
+function renderTimeline(){
+const today = new Date();
+const active = loans.filter(l => l.status === "active")
+.slice()
+.sort((a,b)=> new Date(a.dueDate) - new Date(b.dueDate));
+
+const el = document.getElementById("timeline");
+el.innerHTML = active.length ? active.map(loan=>{
+const m = computeMetrics(loan, today);
+return `
+<div class="timeline-item">
+<span class="timeline-dot ${m.overdue ? 'overdue' : ''}"></span>
+<span><strong>${loan.name}</strong> — due ${formatDate(loan.dueDate)}</span>
+</div>`;
+}).join("") : `<div class="empty-state">No active loans to show.</div>`;
+}
+
+function showNote(id){
+const loan = loans.find(l => l.id === id);
+if(!loan) return;
+document.getElementById("noteModalTitle").textContent = loan.name;
+document.getElementById("noteText").textContent = loan.note || "No additional details.";
+document.getElementById("noteModal").style.display = "block";
+}
+
+function closeNote(){
+document.getElementById("noteModal").style.display = "none";
+}
+
+window.showNote = showNote;
+window.closeNote = closeNote;
+window.toggleClosed = toggleClosed;
+
+/* ==========================================
+AUTH
+========================================== */
+
+function isAdmin(){ return !!currentSession; }
+
+function setAdminUI(){
+const loginBtn = document.getElementById("loginBtn");
+if(isAdmin()){
+loginBtn.textContent = "Logout (admin)";
+loginBtn.onclick = handleLogout;
+}else{
+loginBtn.textContent = "Admin login";
+loginBtn.onclick = openLoginModal;
+}
+}
+
+function openLoginModal(){
+document.getElementById("loginError").textContent = "";
+document.getElementById("loginModal").style.display = "block";
+}
+
+function closeLoginModal(){
+document.getElementById("loginModal").style.display = "none";
+}
+
+async function handleLogin(event){
+event.preventDefault();
+const email = document.getElementById("loginEmail").value.trim();
+const password = document.getElementById("loginPassword").value;
+const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+if(error){
+document.getElementById("loginError").textContent = "Login failed: " + error.message;
+return;
+}
+currentSession = data.session;
+closeLoginModal();
+setAdminUI();
+}
+
+async function handleLogout(){
+await supabaseClient.auth.signOut();
+currentSession = null;
+setAdminUI();
+}
+
+window.openLoginModal = openLoginModal;
+window.closeLoginModal = closeLoginModal;
+window.handleLogin = handleLogin;
+window.handleLogout = handleLogout;
+
+/* ==========================================
+DARK MODE
+========================================== */
+
+const darkBtn = document.getElementById("darkModeBtn");
+
+darkBtn.addEventListener("click", ()=>{
+const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+document.documentElement.setAttribute("data-theme", isDark ? "light" : "dark");
+darkBtn.textContent = isDark ? "Dark mode" : "Light mode";
+});
+
+function printDashboard(){
+window.print();
+}
+
+window.printDashboard = printDashboard;
+
+/* ==========================================
+INIT
+========================================== */
+
+async function initDashboard(){
+const { data: sessionData } = await supabaseClient.auth.getSession();
+currentSession = sessionData.session;
+setAdminUI();
+
+await loadLoans();
+
+renderSummary();
+renderLoanGrid();
+renderTimeline();
+
+document.getElementById("lastUpdated").textContent =
+"Last loaded: " + new Date().toLocaleString();
+}
+
+initDashboard();
+
+</script>
+</body>
+</html>
