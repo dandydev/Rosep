@@ -576,6 +576,70 @@ opacity:1;
 transform:translateX(-50%) translateY(0);
 }
 
+.screenshot-gallery{
+display:flex;
+flex-wrap:wrap;
+gap:10px;
+margin-top:14px;
+}
+.screenshot-thumb{
+position:relative;
+width:84px;
+height:84px;
+border-radius:10px;
+overflow:hidden;
+border:1px solid var(--border);
+}
+.screenshot-thumb img{
+width:100%;
+height:100%;
+object-fit:cover;
+display:block;
+cursor:pointer;
+}
+.screenshot-thumb .screenshot-month{
+position:absolute;
+bottom:0;
+left:0;
+right:0;
+background:rgba(0,0,0,.6);
+color:#fff;
+font-size:.62rem;
+text-align:center;
+padding:2px 0;
+}
+.screenshot-thumb .screenshot-delete{
+position:absolute;
+top:2px;
+right:2px;
+background:rgba(0,0,0,.6);
+color:#fff;
+border:none;
+border-radius:50%;
+width:20px;
+height:20px;
+font-size:.7rem;
+line-height:20px;
+text-align:center;
+cursor:pointer;
+padding:0;
+}
+.screenshot-upload-row{
+margin-top:16px;
+padding-top:14px;
+border-top:1px solid var(--border);
+}
+.screenshot-upload-row input[type="file"]{
+width:100%;
+margin-bottom:10px;
+font-size:.8rem;
+}
+.screenshot-empty{
+color:var(--muted);
+font-size:.8rem;
+margin-top:14px;
+}
+
 footer{
 text-align:center;
 color:var(--muted);
@@ -684,6 +748,18 @@ text-align:center;
         <span class="close" onclick="closeNote()">&times;</span>
         <h2 id="noteModalTitle">Loan details</h2>
         <div id="noteText" style="margin-top:12px;font-size:.88rem;white-space:pre-wrap;"></div>
+
+        <div id="screenshotGallery" class="screenshot-gallery"></div>
+        <div id="screenshotEmpty" class="screenshot-empty" style="display:none;">No payment screenshots yet.</div>
+
+        <div class="admin-only block screenshot-upload-row">
+            <label>Add payment screenshot</label>
+            <input type="file" id="screenshotFileInput" accept="image/*">
+            <label>For which month (optional)</label>
+            <input type="month" id="screenshotMonthInput" style="margin-bottom:10px;">
+            <button class="btn btn-primary" style="width:100%;" onclick="handleUploadScreenshot()">Upload</button>
+            <div id="screenshotUploadStatus" style="font-size:.78rem;margin-top:8px;"></div>
+        </div>
     </div>
 </div>
 
@@ -883,7 +959,7 @@ const status = getStatus(loan.dueDate);
 return { ...lump, overdue:status.overdue, days:status.days };
 }
 
-const PUBLIC_LOAN_COLUMNS = "id, name, repayment_type, status, due_date, principal, principal_paid, monthly_interest, paid, expected_total, daily_rate, last_payment_date, last_payment_for_month, note, created_at, updated_at";
+const PUBLIC_LOAN_COLUMNS = "id, name, repayment_type, status, due_date, principal, principal_paid, monthly_interest, paid, expected_total, daily_rate, last_payment_date, last_payment_for_month, note, payment_screenshots, created_at, updated_at";
 
 async function loadLoans(){
 const { data, error } = await supabaseClient.from("loans").select(PUBLIC_LOAN_COLUMNS);
@@ -901,6 +977,7 @@ paid: Number(row.paid || 0),
 expectedTotal: row.expected_total !== null ? Number(row.expected_total) : null,
 dailyRate: row.daily_rate !== null ? Number(row.daily_rate) : null,
 lastPayment: row.last_payment_date ? { date: row.last_payment_date, forMonth: row.last_payment_for_month } : null,
+screenshots: Array.isArray(row.payment_screenshots) ? row.payment_screenshots : [],
 note: row.note || ""
 }));
 }
@@ -1332,17 +1409,128 @@ return `
 function showNote(id){
 const loan = loans.find(l => l.id === id);
 if(!loan) return;
+currentNoteLoanId = id;
 document.getElementById("noteModalTitle").textContent = loan.name;
 document.getElementById("noteText").textContent = loan.note || "No additional details.";
+document.getElementById("screenshotFileInput").value = "";
+document.getElementById("screenshotMonthInput").value = "";
+document.getElementById("screenshotUploadStatus").textContent = "";
+renderScreenshotGallery(loan);
 document.getElementById("noteModal").style.display = "block";
 }
 
 function closeNote(){
 document.getElementById("noteModal").style.display = "none";
+currentNoteLoanId = null;
 }
 
 window.showNote = showNote;
 window.closeNote = closeNote;
+
+/* ==========================================
+PAYMENT SCREENSHOTS (Phase F)
+========================================== */
+
+let currentNoteLoanId = null;
+
+// Fill in from Cloudinary: Settings → Upload → Upload presets.
+// Cloud name shown top-left of the Cloudinary dashboard.
+const CLOUDINARY_CLOUD_NAME = "YOUR_CLOUD_NAME";
+const CLOUDINARY_UPLOAD_PRESET = "YOUR_UNSIGNED_PRESET";
+
+function renderScreenshotGallery(loan){
+const gallery = document.getElementById("screenshotGallery");
+const empty = document.getElementById("screenshotEmpty");
+const shots = loan.screenshots || [];
+
+if(shots.length === 0){
+gallery.innerHTML = "";
+empty.style.display = "block";
+return;
+}
+empty.style.display = "none";
+
+gallery.innerHTML = shots.map((s, i) => `
+<div class="screenshot-thumb">
+<img src="${s.url}" onclick="window.open('${s.url}','_blank')">
+${s.month ? `<div class="screenshot-month">${formatMonthYear(s.month)}</div>` : ""}
+<button class="screenshot-delete admin-only" title="Delete" onclick="handleDeleteScreenshot(${i})">&times;</button>
+</div>
+`).join("");
+}
+
+async function handleUploadScreenshot(){
+const loan = loans.find(l => l.id === currentNoteLoanId);
+if(!loan) return;
+
+const fileInput = document.getElementById("screenshotFileInput");
+const monthInput = document.getElementById("screenshotMonthInput");
+const status = document.getElementById("screenshotUploadStatus");
+const file = fileInput.files[0];
+
+if(!file){ status.textContent = "Choose an image first."; return; }
+if(CLOUDINARY_CLOUD_NAME === "YOUR_CLOUD_NAME"){
+status.textContent = "Cloudinary isn't configured yet — set CLOUDINARY_CLOUD_NAME and CLOUDINARY_UPLOAD_PRESET in the code.";
+return;
+}
+
+status.textContent = "Uploading...";
+
+const formData = new FormData();
+formData.append("file", file);
+formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+formData.append("folder", "danwaves-loans");
+
+try{
+const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
+method: "POST",
+body: formData
+});
+const data = await res.json();
+if(!res.ok || !data.secure_url){
+status.textContent = "Upload failed: " + (data.error?.message || "unknown error");
+return;
+}
+
+const newShot = {
+url: data.secure_url,
+uploaded_at: new Date().toISOString(),
+month: monthInput.value || null
+};
+const updatedShots = [...(loan.screenshots || []), newShot];
+
+const { error } = await supabaseClient.from("loans").update({ payment_screenshots: updatedShots }).eq("id", loan.id);
+if(error){ status.textContent = "Saved image but failed to link it: " + error.message; return; }
+
+loan.screenshots = updatedShots;
+fileInput.value = "";
+monthInput.value = "";
+status.textContent = "Uploaded.";
+renderScreenshotGallery(loan);
+renderLoanGrid();
+showToast("Screenshot uploaded");
+}catch(err){
+status.textContent = "Upload failed: " + err.message;
+}
+}
+
+async function handleDeleteScreenshot(index){
+const loan = loans.find(l => l.id === currentNoteLoanId);
+if(!loan) return;
+if(!confirm("Delete this payment screenshot? This cannot be undone.")) return;
+
+const updatedShots = (loan.screenshots || []).filter((_, i) => i !== index);
+const { error } = await supabaseClient.from("loans").update({ payment_screenshots: updatedShots }).eq("id", loan.id);
+if(error){ alert("Failed to delete: " + error.message); return; }
+
+loan.screenshots = updatedShots;
+renderScreenshotGallery(loan);
+renderLoanGrid();
+showToast("Screenshot deleted");
+}
+
+window.handleUploadScreenshot = handleUploadScreenshot;
+window.handleDeleteScreenshot = handleDeleteScreenshot;
 window.toggleClosed = toggleClosed;
 
 /* ==========================================
