@@ -475,9 +475,9 @@ font-size:.9rem;
 .form-row{display:flex;gap:10px;}
 .form-row > div{flex:1;}
 
-.admin-only{display:none;}
-body.is-admin .admin-only{display:inline-flex;}
-body.is-admin .admin-only.block{display:block;}
+.admin-only{display:none !important;}
+body.is-admin .admin-only{display:inline-flex !important;}
+body.is-admin .admin-only.block{display:block !important;}
 
 .section-header-row{
 display:flex;
@@ -1111,16 +1111,16 @@ last_payment_for_month: lastPaymentMonth || (lastPaymentDate ? lastPaymentDate.s
 note: document.getElementById("loanFormNote").value.trim() || null,
 admin_note: document.getElementById("loanFormAdminNote").value.trim() || null,
 principal: 0,
-principal_paid: null,
-monthly_interest: null,
-expected_total: null,
-paid: null,
-daily_rate: null
+principal_paid: 0,
+monthly_interest: 0,
+expected_total: 0,
+paid: 0,
+daily_rate: 0
 };
 
 fields.forEach(f => {
 const raw = document.getElementById(`loanField_${f.id}`).value;
-record[f.id] = raw === "" ? (f.required ? 0 : null) : Number(raw);
+record[f.id] = raw === "" ? 0 : Number(raw);
 });
 
 let error, data;
