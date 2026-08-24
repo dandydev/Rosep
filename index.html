@@ -102,7 +102,7 @@ color:#fff;
 
 .summary-grid{
 display:grid;
-grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
 gap:14px;
 margin-bottom:24px;
 }
@@ -110,10 +110,27 @@ margin-bottom:24px;
 .summary-card{
 background:var(--card);
 border:1px solid var(--border);
+border-left:3px solid var(--border);
 border-radius:var(--radius);
 box-shadow:var(--shadow);
 padding:18px 20px;
+transition:border-color .2s ease,transform .15s ease,box-shadow .15s ease;
 }
+
+.summary-card:hover{
+transform:translateY(-1px);
+box-shadow:0 2px 4px rgba(0,0,0,.06),0 4px 14px rgba(0,0,0,.06);
+}
+
+.summary-card.accent-total{border-left-color:#2563eb;}
+.summary-card.accent-capital{border-left-color:#475569;}
+.summary-card.accent-overdue{border-left-color:var(--danger);}
+.summary-card.accent-active{border-left-color:#16a34a;}
+
+[data-theme="dark"] .summary-card.accent-total{border-left-color:#60a5fa;}
+[data-theme="dark"] .summary-card.accent-capital{border-left-color:#94a3b8;}
+[data-theme="dark"] .summary-card.accent-overdue{border-left-color:#f87171;}
+[data-theme="dark"] .summary-card.accent-active{border-left-color:#4ade80;}
 
 .summary-card h3{
 font-size:.78rem;
@@ -122,13 +139,50 @@ color:var(--muted);
 text-transform:uppercase;
 letter-spacing:.03em;
 margin-bottom:6px;
+display:flex;
+align-items:flex-start;
+gap:6px;
+}
+
+.summary-card h3 svg{
+width:14px;
+height:14px;
+flex-shrink:0;
+margin-top:1px;
+stroke:var(--muted);
 }
 
 .summary-card .value{
-font-size:1.5rem;
+font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+font-variant-numeric:tabular-nums;
+font-size:clamp(1.2rem,5vw,1.5rem);
 font-weight:700;
 letter-spacing:-.01em;
+overflow-wrap:break-word;
+word-break:break-word;
 }
+
+.summary-card .value.text-danger{color:var(--danger);}
+
+.summary-card .lc-meta{margin:4px 0 2px;font-size:.74rem;}
+
+.summary-card.summary-card--compact{padding:7px 10px;}
+
+.summary-card--compact h3{
+font-size:.68rem;
+margin-bottom:3px;
+gap:4px;
+}
+
+.summary-card--compact h3 svg{width:12px;height:12px;}
+
+.summary-card--compact .value{font-size:.88rem;}
+
+.summary-card--compact .lc-meta{margin:2px 0 0;font-size:.66rem;}
+
+.summary-card--compact .summary-hint{display:none;}
+
+.summary-card--compact .breakdown-toggle{font-size:.66rem;margin-top:2px;}
 
 .summary-hint{
 font-size:.72rem;
@@ -151,23 +205,27 @@ margin-top:4px;
 .breakdown-list{
 display:none;
 margin-top:10px;
-border-top:1px solid var(--border);
 padding-top:8px;
+border-top:1px dashed var(--border);
 max-height:220px;
 overflow-y:auto;
+flex-direction:column;
+gap:6px;
 }
 
 .breakdown-row{
 display:flex;
 justify-content:space-between;
-font-size:.78rem;
-padding:4px 0;
+font-size:.76rem;
+padding:0;
 color:var(--muted);
 }
 
 .breakdown-row strong{
 color:var(--text);
 font-weight:600;
+font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+font-variant-numeric:tabular-nums;
 }
 
 .filter-bar{
@@ -197,136 +255,175 @@ color:#fff;
 .loan-grid{
 display:grid;
 grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
-gap:12px;
-margin-bottom:28px;
+gap:7px;
+margin-bottom:24px;
 }
 
 .loan-card{
 background:var(--card);
 border:1px solid var(--border);
-border-radius:12px;
-box-shadow:var(--shadow);
-padding:14px 16px;
+border-left:3px solid var(--border);
+border-radius:8px;
+padding:7px 10px;
 display:flex;
 flex-direction:column;
-gap:7px;
+gap:2px;
 position:relative;
-transition:box-shadow .3s ease;
+transition:border-color .2s ease;
 }
 
-.loan-card.overdue{
-border:1.5px solid transparent;
-background:
-linear-gradient(var(--card),var(--card)) padding-box,
-linear-gradient(120deg,var(--danger),#f97316,var(--danger)) border-box;
-background-size:100% 100%,220% 220%;
-animation:overdueBorderShift 6s ease infinite,overdueGlow 3.2s ease-in-out infinite;
-}
+.loan-card.type-accent-monthly{border-left-color:#1e40af;}
+.loan-card.type-accent-weekly{border-left-color:#166534;}
+.loan-card.type-accent-lump_sum{border-left-color:#92400e;}
+.loan-card.type-accent-daily{border-left-color:#5b21b6;}
 
-@keyframes overdueBorderShift{
-0%{background-position:0% 0%,0% 50%;}
-50%{background-position:0% 0%,100% 50%;}
-100%{background-position:0% 0%,0% 50%;}
-}
+[data-theme="dark"] .loan-card.type-accent-monthly{border-left-color:#93c5fd;}
+[data-theme="dark"] .loan-card.type-accent-weekly{border-left-color:#86efac;}
+[data-theme="dark"] .loan-card.type-accent-lump_sum{border-left-color:#fcd34d;}
+[data-theme="dark"] .loan-card.type-accent-daily{border-left-color:#c4b5fd;}
 
-@keyframes overdueGlow{
-0%,100%{box-shadow:var(--shadow),0 0 0 rgba(220,38,38,0);}
-50%{box-shadow:var(--shadow),0 0 14px rgba(220,38,38,.28);}
-}
+.loan-card.overdue{border-left-color:var(--danger);}
 
-.months-badge{
-display:inline-flex;
-align-items:center;
-gap:4px;
-background:var(--danger);
-color:#fff;
-font-size:.7rem;
-font-weight:700;
-padding:2px 9px;
-border-radius:999px;
-width:fit-content;
-}
-
-.loan-card-top{
+.lc-row1{
 display:flex;
 justify-content:space-between;
-align-items:flex-start;
+align-items:baseline;
 gap:8px;
 }
 
-.loan-name{
-font-size:.95rem;
-font-weight:700;
-line-height:1.25;
+.lc-title{
+display:flex;
+align-items:baseline;
+gap:6px;
+min-width:0;
 }
 
-.type-badge{
-display:inline-block;
-font-size:.65rem;
+.loan-name{
+font-size:.86rem;
 font-weight:700;
+line-height:1.3;
+white-space:nowrap;
+overflow:hidden;
+text-overflow:ellipsis;
+}
+
+.loan-type-tag{
+font-size:.6rem;
+font-weight:600;
+color:var(--muted);
 text-transform:uppercase;
 letter-spacing:.03em;
-padding:2px 8px;
-border-radius:999px;
 white-space:nowrap;
+flex-shrink:0;
 }
 
-.type-monthly{background:#dbeafe;color:#1e40af;}
-.type-weekly{background:#dcfce7;color:#166534;}
-.type-lump_sum{background:#fef3c7;color:#92400e;}
-.type-daily{background:#ede9fe;color:#5b21b6;}
+.lc-amount-wrap{
+display:flex;
+flex-direction:column;
+align-items:flex-end;
+flex-shrink:0;
+line-height:1.15;
+}
 
-[data-theme="dark"] .type-monthly{background:#1e3a8a55;color:#93c5fd;}
-[data-theme="dark"] .type-weekly{background:#14532d55;color:#86efac;}
-[data-theme="dark"] .type-lump_sum{background:#78350f55;color:#fcd34d;}
-[data-theme="dark"] .type-daily{background:#4c1d9555;color:#c4b5fd;}
-
-.due-line{
-font-size:.75rem;
+.lc-amount-label{
+font-size:.58rem;
 color:var(--muted);
+text-transform:uppercase;
+letter-spacing:.03em;
 }
 
-.status-pill{
-font-size:.72rem;
-font-weight:600;
+.lc-amount{
+font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+font-variant-numeric:tabular-nums;
+font-size:.88rem;
+font-weight:700;
+color:var(--text);
 }
 
-.status-overdue{color:var(--danger);}
-.status-upcoming{color:var(--success);}
-.status-today{color:var(--warning);}
+.lc-amount.text-danger{color:var(--danger);}
 
-.highlight-box{
-background:var(--bg);
-border-radius:8px;
-padding:7px 12px;
+.lc-row2{
+display:flex;
+justify-content:space-between;
+align-items:center;
+gap:6px;
 }
 
-.highlight-box .label{
+.lc-meta{
 font-size:.68rem;
 color:var(--muted);
-text-transform:uppercase;
-letter-spacing:.03em;
+white-space:nowrap;
+overflow:hidden;
+text-overflow:ellipsis;
 }
 
-.highlight-box .amount{
-font-size:1.1rem;
-font-weight:700;
+.lc-meta .status-overdue{color:var(--danger);font-weight:600;}
+.lc-meta .status-upcoming{color:var(--success);}
+.lc-meta .status-today{color:var(--warning);font-weight:600;}
+
+.lc-expand-btn{
+border:none;
+background:none;
+color:var(--muted);
+font-size:.6rem;
+cursor:pointer;
+padding:2px 4px;
+flex-shrink:0;
+}
+
+.lc-expanded{
+margin-top:5px;
+padding-top:6px;
+border-top:1px dashed var(--border);
+display:flex;
+flex-direction:column;
+gap:6px;
 }
 
 .detail-row{
 display:flex;
 justify-content:space-between;
-font-size:.78rem;
+font-size:.76rem;
 color:var(--muted);
 }
 
 .detail-row strong{
 color:var(--text);
 font-weight:600;
+font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+font-variant-numeric:tabular-nums;
+}
+
+.detail-grid{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:4px 12px;
+}
+
+.detail-cell{
+display:flex;
+flex-direction:column;
+gap:0;
+}
+
+.detail-cell .dc-label{
+font-size:.63rem;
+color:var(--muted);
+text-transform:uppercase;
+letter-spacing:.02em;
+}
+
+.detail-cell .dc-value{
+font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+font-variant-numeric:tabular-nums;
+font-size:.78rem;
+font-weight:600;
+color:var(--text);
+line-height:1.3;
 }
 
 .progress-track{
-height:6px;
+height:5px;
 background:var(--bg);
 border-radius:999px;
 overflow:hidden;
@@ -342,7 +439,6 @@ border-radius:999px;
 display:flex;
 justify-content:space-between;
 align-items:center;
-margin-top:4px;
 }
 
 .icon-btn{
@@ -388,7 +484,22 @@ margin-bottom:14px;
 .timeline{
 display:flex;
 flex-direction:column;
-gap:10px;
+gap:18px;
+}
+
+.timeline-group-label{
+font-size:.72rem;
+font-weight:700;
+text-transform:uppercase;
+letter-spacing:.04em;
+color:var(--muted);
+margin-bottom:8px;
+}
+
+.timeline-group-items{
+display:flex;
+flex-direction:column;
+gap:8px;
 }
 
 .timeline-item{
@@ -402,6 +513,11 @@ padding:10px 14px;
 font-size:.85rem;
 }
 
+.timeline-item.is-overdue{
+background:color-mix(in srgb, var(--danger) 8%, var(--card));
+border-color:color-mix(in srgb, var(--danger) 35%, var(--border));
+}
+
 .timeline-dot{
 width:8px;
 height:8px;
@@ -411,6 +527,43 @@ flex-shrink:0;
 }
 
 .timeline-dot.overdue{background:var(--danger);}
+.timeline-dot.today{background:var(--warning);}
+
+.timeline-item-main{
+display:flex;
+flex-direction:column;
+gap:2px;
+flex:1;
+min-width:0;
+}
+
+.timeline-item-name{font-weight:600;}
+
+.timeline-item-amount{
+font-size:.78rem;
+color:var(--muted);
+}
+
+.timeline-badge{
+font-size:.72rem;
+font-weight:600;
+padding:3px 9px;
+border-radius:999px;
+white-space:nowrap;
+flex-shrink:0;
+background:color-mix(in srgb, var(--primary) 12%, transparent);
+color:var(--primary);
+}
+
+.timeline-badge.overdue{
+background:color-mix(in srgb, var(--danger) 14%, transparent);
+color:var(--danger);
+}
+
+.timeline-badge.today{
+background:color-mix(in srgb, var(--warning) 16%, transparent);
+color:var(--warning);
+}
 
 .modal{
 display:none;
@@ -687,28 +840,29 @@ text-align:center;
     </header>
 
     <section class="summary-grid">
-        <div class="summary-card">
-            <h3>Total still owed</h3>
+        <div class="summary-card accent-total summary-card--compact">
+            <h3><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>Total still owed</h3>
             <div class="value" id="totalRepayment">₦0</div>
             <p class="summary-hint">Capital plus interest combined — what it would take to fully clear everything.</p>
             <button class="breakdown-toggle" onclick="toggleBreakdown('repayment')">View breakdown</button>
             <div class="breakdown-list" id="repaymentBreakdown"></div>
         </div>
-        <div class="summary-card">
-            <h3>Capital still owed</h3>
+        <div class="summary-card accent-capital summary-card--compact">
+            <h3><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.66 3.58 3 8 3s8-1.34 8-3V5"/><path d="M4 11v6c0 1.66 3.58 3 8 3s8-1.34 8-3v-6"/></svg>Capital still owed</h3>
             <div class="value" id="totalPrincipal">₦0</div>
             <p class="summary-hint">Just the money lent out that hasn't been paid back yet — interest not included.</p>
             <button class="breakdown-toggle" onclick="toggleBreakdown('principal')">View breakdown</button>
             <div class="breakdown-list" id="principalBreakdown"></div>
         </div>
-        <div class="summary-card">
-            <h3>Overdue interest</h3>
+        <div class="summary-card accent-overdue summary-card--compact">
+            <h3><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>Overdue interest</h3>
             <div class="value" id="overdueInterest">₦0</div>
             <p class="summary-hint">Interest that's currently late, across all overdue loans.</p>
         </div>
-        <div class="summary-card">
-            <h3>Active loans</h3>
+        <div class="summary-card accent-active summary-card--compact">
+            <h3><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Active loans</h3>
             <div class="value" id="activeCount">0</div>
+            <div class="lc-meta" id="activeStatusStrip"></div>
             <p class="summary-hint">Loans currently being tracked (closed ones don't count).</p>
         </div>
     </section>
@@ -1212,6 +1366,15 @@ function typeLabel(type){
 return { monthly:"Monthly interest", weekly:"Weekly plan", lump_sum:"One-time", daily:"Daily rate" }[type] || type;
 }
 
+const expandedLoanIds = new Set();
+
+function toggleLoanExpand(id){
+if(expandedLoanIds.has(id)) expandedLoanIds.delete(id);
+else expandedLoanIds.add(id);
+renderLoanGrid();
+}
+window.toggleLoanExpand = toggleLoanExpand;
+
 function renderLoanCard(loan){
 const today = new Date();
 const m = computeMetrics(loan, today);
@@ -1223,7 +1386,7 @@ const statusClass = m.overdue ? "status-overdue" : (m.days === 0 ? "status-today
 
 let statusText;
 if(isMonthly && m.overdue){
-statusText = `Overdue`;
+statusText = monthsOverdueCount >= 1 ? `Overdue \u00b7 ${monthsOverdueCount} month${monthsOverdueCount>1?'s':''}` : "Overdue";
 }else if(m.overdue){
 statusText = `Overdue (${m.days} day${m.days!==1?'s':''})`;
 }else if(m.days === 0){
@@ -1232,62 +1395,50 @@ statusText = "Due today";
 statusText = `${m.days} day${m.days!==1?'s':''} left`;
 }
 
-const monthsBadge = monthsOverdueCount >= 1 ?
-`<span class="months-badge">${monthsOverdueCount} month${monthsOverdueCount>1?'s':''} overdue</span>` : "";
-
-let highlight = "";
+let amountLabel = "";
+let amountValue = 0;
 let details = "";
+let progressBlock = "";
+
+function detailCell(label, value){
+return `<div class="detail-cell"><span class="dc-label">${label}</span><span class="dc-value">${value}</span></div>`;
+}
 
 if(loan.type === "monthly"){
-highlight = `
-<div class="highlight-box">
-<div class="label">Interest due</div>
-<div class="amount">${money(m.interestDue)}</div>
+amountLabel = "Interest due";
+amountValue = m.interestDue;
+details = `<div class="detail-grid">
+${detailCell("Principal", money(loan.principal))}
+${loan.principalPaid > 0 ? detailCell("Principal paid", money(loan.principalPaid)) : ""}
+${detailCell("Monthly interest", money(loan.monthlyInterest))}
+${loan.paid > 0 ? detailCell("Interest paid", money(loan.paid)) : ""}
 </div>`;
-details = `
-<div class="detail-row"><span>Principal</span><strong>${money(loan.principal)}</strong></div>
-${loan.principalPaid > 0 ? `<div class="detail-row"><span>Principal paid</span><strong>${money(loan.principalPaid)}</strong></div>` : ""}
-<div class="detail-row"><span>Monthly interest</span><strong>${money(loan.monthlyInterest)}</strong></div>
-`;
 }else if(loan.type === "weekly"){
-highlight = `
-<div class="highlight-box">
-<div class="label">Outstanding balance</div>
-<div class="amount">${money(m.repaymentOutstanding)}</div>
-</div>
+amountLabel = "Outstanding";
+amountValue = m.repaymentOutstanding;
+progressBlock = `
 <div class="progress-track"><div class="progress-fill" style="width:${m.progressPercent}%"></div></div>
 <div class="detail-row"><span>${m.progressPercent}% paid</span><span>${money(loan.paid)} of ${money(loan.expectedTotal)}</span></div>
 `;
-details = `<div class="detail-row"><span>Principal</span><strong>${money(loan.principal)}</strong></div>`;
+details = `<div class="detail-grid">${detailCell("Principal", money(loan.principal))}</div>`;
 }else{
-highlight = `
-<div class="highlight-box">
-<div class="label">${m.repaymentOutstanding > 0 ? "Outstanding" : "Fully paid"}</div>
-<div class="amount">${money(m.repaymentOutstanding)}</div>
+amountLabel = m.repaymentOutstanding > 0 ? "Outstanding" : "Fully paid";
+amountValue = m.repaymentOutstanding;
+details = `<div class="detail-grid">
+${detailCell("Principal", money(loan.principal))}
+${detailCell("Full repayment", money(loan.expectedTotal))}
+${loan.dailyRate ? detailCell("Daily rate", money(loan.dailyRate)) : ""}
 </div>`;
-details = `
-<div class="detail-row"><span>Principal</span><strong>${money(loan.principal)}</strong></div>
-<div class="detail-row"><span>Full repayment</span><strong>${money(loan.expectedTotal)}</strong></div>
-${loan.dailyRate ? `<div class="detail-row"><span>Daily rate</span><strong>${money(loan.dailyRate)}</strong></div>` : ""}
-`;
 }
 
 const lastPaymentLine = loan.lastPayment ?
 `<div class="detail-row"><span>${formatLastPayment(loan)}</span></div>` :
 (isAdmin() && loan.dateGiven ? `<div class="detail-row admin-only block"><span>Given ${formatDate(loan.dateGiven)} (private)</span></div>` : "");
 
-return `
-<div class="loan-card ${m.overdue ? 'overdue' : ''}">
-<div class="loan-card-top">
-<div>
-<div class="loan-name">${loan.name}</div>
-<div class="due-line">Due ${formatDate(loan.dueDate)}</div>
-</div>
-<span class="type-badge type-${loan.type}">${typeLabel(loan.type)}</span>
-</div>
-${monthsBadge}
-<div class="status-pill ${statusClass}">${statusText}</div>
-${highlight}
+const isExpanded = expandedLoanIds.has(loan.id);
+const expandedBlock = isExpanded ? `
+<div class="lc-expanded">
+${progressBlock}
 ${details}
 ${lastPaymentLine}
 <div class="card-footer">
@@ -1298,6 +1449,25 @@ ${lastPaymentLine}
 <button class="icon-btn danger" title="Delete" onclick="handleDeleteLoan('${loan.id}')">&#128465;</button>
 </div>
 </div>
+</div>` : "";
+
+return `
+<div class="loan-card type-accent-${loan.type} ${m.overdue ? 'overdue' : ''}">
+<div class="lc-row1">
+<div class="lc-title">
+<span class="loan-name">${loan.name}</span>
+<span class="loan-type-tag">${typeLabel(loan.type)}</span>
+</div>
+<div class="lc-amount-wrap">
+<span class="lc-amount-label">${amountLabel}</span>
+<span class="lc-amount ${m.overdue ? 'text-danger' : ''}">${money(amountValue)}</span>
+</div>
+</div>
+<div class="lc-row2">
+<span class="lc-meta">Due ${formatDate(loan.dueDate)} \u00b7 <span class="${statusClass}">${statusText}</span></span>
+<button class="lc-expand-btn" onclick="toggleLoanExpand('${loan.id}')" aria-label="Toggle details">${isExpanded ? '&#9650; Less' : '&#9660; More'}</button>
+</div>
+${expandedBlock}
 </div>
 `;
 }
@@ -1352,6 +1522,7 @@ renderLoanGrid();
 function renderSummary(){
 const today = new Date();
 let totalPrincipal = 0, totalRepayment = 0, overdueInterest = 0, activeCount = 0;
+let overdueCount = 0, upcomingCount = 0;
 const principalRows = [];
 const repaymentRows = [];
 
@@ -1360,6 +1531,7 @@ const m = computeMetrics(loan, today);
 totalPrincipal += m.principalOutstanding;
 totalRepayment += m.repaymentOutstanding;
 activeCount++;
+if(m.overdue){ overdueCount++; } else { upcomingCount++; }
 if(m.principalOutstanding > 0){
 principalRows.push({ name: loan.name, value: m.principalOutstanding });
 }
@@ -1377,8 +1549,17 @@ overdueInterest += (m.repaymentOutstanding - m.principalOutstanding);
 
 document.getElementById("totalPrincipal").textContent = money(totalPrincipal);
 document.getElementById("totalRepayment").textContent = money(totalRepayment);
-document.getElementById("overdueInterest").textContent = money(overdueInterest);
+
+const overdueInterestEl = document.getElementById("overdueInterest");
+overdueInterestEl.textContent = money(overdueInterest);
+overdueInterestEl.classList.toggle("text-danger", overdueInterest > 0);
+
 document.getElementById("activeCount").textContent = activeCount;
+
+const statusStrip = document.getElementById("activeStatusStrip");
+statusStrip.innerHTML = activeCount > 0
+? `<span class="status-overdue">${overdueCount} overdue</span> &middot; <span class="status-upcoming">${upcomingCount} upcoming</span>`
+: `No active loans`;
 
 document.getElementById("principalBreakdown").innerHTML = principalRows.length ?
 principalRows.map(r => `<div class="breakdown-row"><span>${r.name}</span><strong>${money(r.value)}</strong></div>`).join("") :
@@ -1391,26 +1572,67 @@ repaymentRows.map(r => `<div class="breakdown-row"><span>${r.name}</span><strong
 
 function toggleBreakdown(kind){
 const el = document.getElementById(kind === "principal" ? "principalBreakdown" : "repaymentBreakdown");
-el.style.display = el.style.display === "block" ? "none" : "block";
+el.style.display = el.style.display === "flex" ? "none" : "flex";
 }
 
 window.toggleBreakdown = toggleBreakdown;
 
+function timelineBadge(loan, m){
+const isMonthly = loan.type === "monthly";
+const monthsOverdueCount = (isMonthly && m.overdue) ? m.months + 1 : 0;
+
+let dotClass = "";
+let badgeClass = "";
+let text;
+
+if(isMonthly && m.overdue){
+text = monthsOverdueCount >= 1 ? `Overdue \u00b7 ${monthsOverdueCount} month${monthsOverdueCount>1?'s':''}` : "Overdue";
+dotClass = badgeClass = "overdue";
+}else if(m.overdue){
+text = `${m.days}d overdue`;
+dotClass = badgeClass = "overdue";
+}else if(m.days === 0){
+text = "Due today";
+dotClass = badgeClass = "today";
+}else{
+text = `in ${m.days} day${m.days!==1?'s':''}`;
+}
+
+return { dotClass, badgeClass, text };
+}
+
 function renderTimeline(){
 const today = new Date();
 const active = loans.filter(l => l.status === "active")
-.slice()
-.sort((a,b)=> new Date(a.dueDate) - new Date(b.dueDate));
+.map(loan => ({ loan, m: computeMetrics(loan, today) }))
+.sort((a,b)=> new Date(a.loan.dueDate) - new Date(b.loan.dueDate));
+
+const groups = [
+{ label:"Overdue", items: active.filter(x => x.m.overdue) },
+{ label:"Due this week", items: active.filter(x => !x.m.overdue && x.m.days <= 7) },
+{ label:"Due this month", items: active.filter(x => !x.m.overdue && x.m.days > 7 && x.m.days <= 30) },
+{ label:"Later", items: active.filter(x => !x.m.overdue && x.m.days > 30) }
+].filter(g => g.items.length);
 
 const el = document.getElementById("timeline");
-el.innerHTML = active.length ? active.map(loan=>{
-const m = computeMetrics(loan, today);
+el.innerHTML = groups.length ? groups.map(group => `
+<div class="timeline-group">
+<div class="timeline-group-label">${group.label} (${group.items.length})</div>
+<div class="timeline-group-items">
+${group.items.map(({loan, m}) => {
+const badge = timelineBadge(loan, m);
 return `
-<div class="timeline-item">
-<span class="timeline-dot ${m.overdue ? 'overdue' : ''}"></span>
-<span><strong>${loan.name}</strong> — due ${formatDate(loan.dueDate)}</span>
+<div class="timeline-item ${badge.dotClass === 'overdue' ? 'is-overdue' : ''}">
+<span class="timeline-dot ${badge.dotClass}"></span>
+<div class="timeline-item-main">
+<span class="timeline-item-name">${loan.name}</span>
+<span class="timeline-item-amount">${money(m.repaymentOutstanding)} due &middot; ${formatDate(loan.dueDate)}</span>
+</div>
+<span class="timeline-badge ${badge.badgeClass}">${badge.text}</span>
 </div>`;
-}).join("") : `<div class="empty-state">No active loans to show.</div>`;
+}).join("")}
+</div>
+</div>`).join("") : `<div class="empty-state">No active loans to show.</div>`;
 }
 
 function showNote(id){
