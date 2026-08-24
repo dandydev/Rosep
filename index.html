@@ -1123,15 +1123,19 @@ const raw = document.getElementById(`loanField_${f.id}`).value;
 record[f.id] = raw === "" ? (f.required ? 0 : null) : Number(raw);
 });
 
-let error;
+let error, data;
 if(id){
-({ error } = await supabaseClient.from("loans").update(record).eq("id", id));
+({ error, data } = await supabaseClient.from("loans").update(record).eq("id", id).select());
 }else{
-({ error } = await supabaseClient.from("loans").insert(record));
+({ error, data } = await supabaseClient.from("loans").insert(record).select());
 }
 
 if(error){
 errorEl.textContent = "Save failed: " + error.message;
+return;
+}
+if(!data || data.length === 0){
+errorEl.textContent = "Save blocked: not logged in as admin, or your session expired. Please log in again.";
 return;
 }
 
@@ -1147,8 +1151,9 @@ const nextStatus = loan.status === "closed" ? "active" : "closed";
 const verb = nextStatus === "closed" ? "close" : "reopen";
 if(!confirm(`Mark "${loan.name}" as ${nextStatus}? This ${verb}s the loan but keeps it in the system.`)) return;
 
-const { error } = await supabaseClient.from("loans").update({ status: nextStatus }).eq("id", id);
+const { error, data } = await supabaseClient.from("loans").update({ status: nextStatus }).eq("id", id).select();
 if(error){ alert("Failed to update status: " + error.message); return; }
+if(!data || data.length === 0){ alert("Blocked: not logged in as admin, or your session expired. Please log in again."); return; }
 await refreshDashboard();
 showToast(nextStatus === "closed" ? "Loan closed" : "Loan reopened");
 }
@@ -1159,8 +1164,9 @@ if(!loan) return;
 if(!confirm(`Permanently delete "${loan.name}"? This cannot be undone. Use "Close" instead if it's just fully paid off.`)) return;
 if(!confirm(`Are you absolutely sure? This will permanently remove "${loan.name}" and its history.`)) return;
 
-const { error } = await supabaseClient.from("loans").delete().eq("id", id);
+const { error, data } = await supabaseClient.from("loans").delete().eq("id", id).select();
 if(error){ alert("Failed to delete: " + error.message); return; }
+if(!data || data.length === 0){ alert("Blocked: not logged in as admin, or your session expired. Please log in again."); return; }
 await refreshDashboard();
 showToast("Loan deleted");
 }
@@ -1499,8 +1505,9 @@ month: monthInput.value || null
 };
 const updatedShots = [...(loan.screenshots || []), newShot];
 
-const { error } = await supabaseClient.from("loans").update({ payment_screenshots: updatedShots }).eq("id", loan.id);
-if(error){ status.textContent = "Saved image but failed to link it: " + error.message; return; }
+const { error: linkError, data: linkData } = await supabaseClient.from("loans").update({ payment_screenshots: updatedShots }).eq("id", loan.id).select();
+if(linkError){ status.textContent = "Saved image but failed to link it: " + linkError.message; return; }
+if(!linkData || linkData.length === 0){ status.textContent = "Blocked: not logged in as admin, or your session expired."; return; }
 
 loan.screenshots = updatedShots;
 fileInput.value = "";
@@ -1520,8 +1527,9 @@ if(!loan) return;
 if(!confirm("Delete this payment screenshot? This cannot be undone.")) return;
 
 const updatedShots = (loan.screenshots || []).filter((_, i) => i !== index);
-const { error } = await supabaseClient.from("loans").update({ payment_screenshots: updatedShots }).eq("id", loan.id);
+const { error, data } = await supabaseClient.from("loans").update({ payment_screenshots: updatedShots }).eq("id", loan.id).select();
 if(error){ alert("Failed to delete: " + error.message); return; }
+if(!data || data.length === 0){ alert("Blocked: not logged in as admin, or your session expired."); return; }
 
 loan.screenshots = updatedShots;
 renderScreenshotGallery(loan);
@@ -1743,8 +1751,20 @@ INIT
 ========================================== */
 
 async function initDashboard(){
+// getSession() only reads local storage — it does NOT verify with Supabase's
+// server that the token is still valid. getUser() makes a real server call,
+// so any stale, corrupted, or unexpectedly-persisted session gets caught here
+// and treated as logged out, rather than silently trusted.
+const { data: userData, error: userError } = await supabaseClient.auth.getUser();
+if(userError || !userData.user){
+currentSession = null;
+if(!userError || userError.message !== "Auth session missing!"){
+await supabaseClient.auth.signOut();
+}
+}else{
 const { data: sessionData } = await supabaseClient.auth.getSession();
 currentSession = sessionData.session;
+}
 setAdminUI();
 
 await loadLoans();
