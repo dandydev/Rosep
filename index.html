@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Loan Monitoring Dashboard</title>
+<title>Dashboard</title>
 <style>
 
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -259,17 +259,82 @@ gap:7px;
 margin-bottom:24px;
 }
 
+.loan-groups{
+display:flex;
+flex-direction:column;
+gap:6px;
+}
+
+.loan-group{margin-bottom:6px;}
+
+.loan-group-header{
+display:flex;
+align-items:center;
+gap:9px;
+margin-bottom:11px;
+padding-top:2px;
+}
+
+.loan-group-dot{
+width:9px;
+height:9px;
+border-radius:50%;
+flex-shrink:0;
+box-shadow:0 0 0 4px color-mix(in srgb, currentColor 16%, transparent);
+}
+
+.loan-group-title{
+font-size:.78rem;
+font-weight:700;
+text-transform:uppercase;
+letter-spacing:.05em;
+margin:0;
+white-space:nowrap;
+color:var(--text);
+}
+
+.loan-group-count{
+font-size:.68rem;
+font-weight:700;
+padding:1px 8px;
+border-radius:999px;
+background:color-mix(in srgb, currentColor 14%, transparent);
+flex-shrink:0;
+}
+
+.loan-group-line{
+flex:1;
+height:1px;
+background:linear-gradient(to right, color-mix(in srgb, currentColor 25%, transparent), transparent);
+}
+
+.loan-group-header--danger{color:var(--danger);}
+.loan-group-header--warning{color:var(--warning);}
+.loan-group-header--primary{color:var(--primary);}
+.loan-group-header--muted{color:var(--muted);}
+
+.loan-group-header--danger .loan-group-title,
+.loan-group-header--warning .loan-group-title,
+.loan-group-header--primary .loan-group-title,
+.loan-group-header--muted .loan-group-title{color:var(--text);}
+
 .loan-card{
 background:var(--card);
 border:1px solid var(--border);
 border-left:3px solid var(--border);
-border-radius:8px;
-padding:7px 10px;
+border-radius:10px;
+padding:9px 12px;
 display:flex;
 flex-direction:column;
 gap:2px;
 position:relative;
-transition:border-color .2s ease;
+box-shadow:0 1px 2px rgba(0,0,0,.04);
+transition:border-color .2s ease,box-shadow .18s ease,transform .18s ease;
+}
+
+.loan-card:hover{
+box-shadow:0 2px 5px rgba(0,0,0,.05),0 6px 16px rgba(0,0,0,.06);
+transform:translateY(-1px);
 }
 
 .loan-card.type-accent-monthly{border-left-color:#1e40af;}
@@ -282,7 +347,11 @@ transition:border-color .2s ease;
 [data-theme="dark"] .loan-card.type-accent-lump_sum{border-left-color:#fcd34d;}
 [data-theme="dark"] .loan-card.type-accent-daily{border-left-color:#c4b5fd;}
 
-.loan-card.overdue{border-left-color:var(--danger);}
+.loan-card.overdue{
+border-left-color:var(--danger);
+border-color:color-mix(in srgb, var(--danger) 30%, var(--border));
+background:color-mix(in srgb, var(--danger) 7%, var(--card));
+}
 
 .lc-row1{
 display:flex;
@@ -475,94 +544,10 @@ cursor:pointer;
 margin-bottom:14px;
 }
 
-.timeline-section h2, .loans-section h2{
+.loans-section h2{
 font-size:1.05rem;
 font-weight:700;
 margin-bottom:14px;
-}
-
-.timeline{
-display:flex;
-flex-direction:column;
-gap:18px;
-}
-
-.timeline-group-label{
-font-size:.72rem;
-font-weight:700;
-text-transform:uppercase;
-letter-spacing:.04em;
-color:var(--muted);
-margin-bottom:8px;
-}
-
-.timeline-group-items{
-display:flex;
-flex-direction:column;
-gap:8px;
-}
-
-.timeline-item{
-display:flex;
-gap:12px;
-align-items:center;
-background:var(--card);
-border:1px solid var(--border);
-border-radius:10px;
-padding:10px 14px;
-font-size:.85rem;
-}
-
-.timeline-item.is-overdue{
-background:color-mix(in srgb, var(--danger) 8%, var(--card));
-border-color:color-mix(in srgb, var(--danger) 35%, var(--border));
-}
-
-.timeline-dot{
-width:8px;
-height:8px;
-border-radius:50%;
-background:var(--primary);
-flex-shrink:0;
-}
-
-.timeline-dot.overdue{background:var(--danger);}
-.timeline-dot.today{background:var(--warning);}
-
-.timeline-item-main{
-display:flex;
-flex-direction:column;
-gap:2px;
-flex:1;
-min-width:0;
-}
-
-.timeline-item-name{font-weight:600;}
-
-.timeline-item-amount{
-font-size:.78rem;
-color:var(--muted);
-}
-
-.timeline-badge{
-font-size:.72rem;
-font-weight:600;
-padding:3px 9px;
-border-radius:999px;
-white-space:nowrap;
-flex-shrink:0;
-background:color-mix(in srgb, var(--primary) 12%, transparent);
-color:var(--primary);
-}
-
-.timeline-badge.overdue{
-background:color-mix(in srgb, var(--danger) 14%, transparent);
-color:var(--danger);
-}
-
-.timeline-badge.today{
-background:color-mix(in srgb, var(--warning) 16%, transparent);
-color:var(--warning);
 }
 
 .modal{
@@ -582,6 +567,47 @@ margin:8% auto;
 padding:24px;
 border-radius:16px;
 position:relative;
+max-height:84vh;
+overflow-y:auto;
+-webkit-overflow-scrolling:touch;
+}
+
+@media (max-width:600px){
+.modal-content{
+width:100%;
+max-width:100%;
+margin:0;
+border-radius:0;
+max-height:100dvh;
+height:100dvh;
+padding:0;
+display:flex;
+flex-direction:column;
+overflow:hidden;
+}
+.modal-content.modal-content-plain{
+display:block;
+padding:20px 16px calc(20px + env(safe-area-inset-bottom));
+overflow-y:auto;
+}
+.modal-scroll-body{
+flex:1 1 auto;
+overflow-y:auto;
+-webkit-overflow-scrolling:touch;
+padding:20px 16px;
+min-height:0;
+}
+.modal-fixed-header{
+flex:0 0 auto;
+padding:20px 16px 0 16px;
+}
+.modal-fixed-footer{
+flex:0 0 auto;
+padding:12px 16px calc(12px + env(safe-area-inset-bottom));
+background:var(--card);
+border-top:1px solid var(--border);
+}
+.modal-fixed-footer .btn{margin-bottom:0;}
 }
 
 .close{
@@ -819,13 +845,11 @@ text-align:center;
 
     <header class="dashboard-header">
         <div>
-            <h1>Loan Monitoring Dashboard</h1>
+            <h1>Dashboard</h1>
             <h2 id="borrowerName">RoseMary Idire</h2>
-            <p>Professional loan tracking &amp; monitoring portal</p>
         </div>
         <div class="header-actions">
             <button id="darkModeBtn" class="btn">Dark mode</button>
-            <button onclick="printDashboard()" class="btn">Print</button>
             <div class="reports-menu admin-only">
                 <button class="btn" onclick="toggleReportsMenu()">Reports</button>
                 <div class="reports-dropdown" id="reportsDropdown">
@@ -880,7 +904,7 @@ text-align:center;
             <button class="filter-btn" data-filter="upcoming">Upcoming</button>
         </div>
 
-        <div id="loanGrid" class="loan-grid"></div>
+        <div id="loanGrid" class="loan-groups"></div>
 
         <button id="closedToggle" class="closed-toggle" onclick="toggleClosed()">
             Closed loans (<span id="closedCount">0</span>) &#9662;
@@ -890,10 +914,6 @@ text-align:center;
 
     </section>
 
-    <section class="timeline-section">
-        <h2>Loan timeline</h2>
-        <div id="timeline" class="timeline"></div>
-    </section>
 
 </div>
 
@@ -934,9 +954,11 @@ text-align:center;
 
 <div id="loanFormModal" class="modal">
     <div class="modal-content">
-        <span class="close" onclick="closeLoanForm()">&times;</span>
-        <h2 id="loanFormTitle">Add loan</h2>
-        <form id="loanForm" onsubmit="handleLoanFormSubmit(event)" style="margin-top:15px;">
+        <div class="modal-fixed-header">
+            <span class="close" onclick="closeLoanForm()">&times;</span>
+            <h2 id="loanFormTitle">Add loan</h2>
+        </div>
+        <form id="loanForm" onsubmit="handleLoanFormSubmit(event)" class="modal-scroll-body" style="margin-top:0;">
             <input type="hidden" id="loanFormId">
             <label>Name</label>
             <input type="text" id="loanFormName" required placeholder="e.g. Opay Loan">
@@ -992,9 +1014,11 @@ text-align:center;
             <label>Internal note <span style="font-weight:600;">(private — admin only, never shown publicly)</span></label>
             <textarea id="loanFormAdminNote" placeholder="Private notes only you can see"></textarea>
 
-            <div id="loanFormError" style="color:var(--danger);font-size:.82rem;margin-bottom:10px;"></div>
-            <button type="submit" class="btn btn-primary" style="width:100%;">Save loan</button>
+            <div id="loanFormError" style="color:var(--danger);font-size:.82rem;margin-bottom:0;"></div>
         </form>
+        <div class="modal-fixed-footer">
+            <button type="submit" form="loanForm" class="btn btn-primary" style="width:100%;">Save loan</button>
+        </div>
     </div>
 </div>
 
@@ -1013,7 +1037,12 @@ text-align:center;
 const SUPABASE_URL = "https://ojnzoyytbleujxrubosy.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_sLnGF85Ftn32G2XT5SPJTA_zKTjAOxo";
 
-const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// sessionStorage (not localStorage) means the login is tied to this
+// browser tab/window — closing it clears the session, so the admin
+// is logged out on exit instead of staying signed in indefinitely.
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+auth: { storage: window.sessionStorage, persistSession: true, autoRefreshToken: true }
+});
 
 let loans = [];
 let currentSession = null;
@@ -1340,7 +1369,6 @@ await loadLoans();
 if(isAdmin()) await loadAdminDateGiven();
 renderSummary();
 renderLoanGrid();
-renderTimeline();
 document.getElementById("lastUpdated").textContent = "Last loaded: " + new Date().toLocaleString();
 }
 
@@ -1473,29 +1501,46 @@ ${expandedBlock}
 }
 
 function filteredActiveLoans(){
-const today = new Date();
 const active = loans.filter(l => l.status === "active");
 
 if(currentFilter === "overdue"){
-return active
-.filter(l => getStatus(l.dueDate).overdue)
-.sort((a,b) => getStatus(b.dueDate).days - getStatus(a.dueDate).days);
+return active.filter(l => getStatus(l.dueDate).overdue);
 }
-
 if(currentFilter === "upcoming"){
-return active
-.filter(l => !getStatus(l.dueDate).overdue)
-.sort((a,b) => new Date(a.dueDate) - new Date(b.dueDate));
+return active.filter(l => !getStatus(l.dueDate).overdue);
+}
+return active;
 }
 
-return active.slice().sort((a,b) => new Date(a.dueDate) - new Date(b.dueDate));
+function renderLoanGroupHTML(group){
+return `
+<div class="loan-group">
+<div class="loan-group-header loan-group-header--${group.accent}">
+<span class="loan-group-dot"></span>
+<h3 class="loan-group-title">${group.label}</h3>
+<span class="loan-group-count">${group.items.length}</span>
+<span class="loan-group-line"></span>
+</div>
+<div class="loan-grid">
+${group.items.map(({loan}) => renderLoanCard(loan)).join("")}
+</div>
+</div>`;
 }
 
 function renderLoanGrid(){
 const grid = document.getElementById("loanGrid");
+const today = new Date();
 const list = filteredActiveLoans();
-grid.innerHTML = list.length ?
-list.map(renderLoanCard).join("") :
+const scored = list.map(loan => ({ loan, m: computeMetrics(loan, today) }));
+const groups = bucketLoansByDueDate(scored);
+
+// Oldest due date first within every bucket: for the Overdue
+// group that surfaces the most overdue loan at the top, and for
+// the others it surfaces whichever is coming up soonest.
+groups.forEach(g => g.items.sort((a,b) => new Date(a.loan.dueDate) - new Date(b.loan.dueDate)));
+
+grid.innerHTML = groups.length ?
+groups.map(renderLoanGroupHTML).join("") :
 `<div class="empty-state">No loans match this filter.</div>`;
 
 const closed = loans.filter(l => l.status === "closed");
@@ -1577,62 +1622,16 @@ el.style.display = el.style.display === "flex" ? "none" : "flex";
 
 window.toggleBreakdown = toggleBreakdown;
 
-function timelineBadge(loan, m){
-const isMonthly = loan.type === "monthly";
-const monthsOverdueCount = (isMonthly && m.overdue) ? m.months + 1 : 0;
-
-let dotClass = "";
-let badgeClass = "";
-let text;
-
-if(isMonthly && m.overdue){
-text = monthsOverdueCount >= 1 ? `Overdue \u00b7 ${monthsOverdueCount} month${monthsOverdueCount>1?'s':''}` : "Overdue";
-dotClass = badgeClass = "overdue";
-}else if(m.overdue){
-text = `${m.days}d overdue`;
-dotClass = badgeClass = "overdue";
-}else if(m.days === 0){
-text = "Due today";
-dotClass = badgeClass = "today";
-}else{
-text = `in ${m.days} day${m.days!==1?'s':''}`;
-}
-
-return { dotClass, badgeClass, text };
-}
-
-function renderTimeline(){
-const today = new Date();
-const active = loans.filter(l => l.status === "active")
-.map(loan => ({ loan, m: computeMetrics(loan, today) }))
-.sort((a,b)=> new Date(a.loan.dueDate) - new Date(b.loan.dueDate));
-
-const groups = [
-{ label:"Overdue", items: active.filter(x => x.m.overdue) },
-{ label:"Due this week", items: active.filter(x => !x.m.overdue && x.m.days <= 7) },
-{ label:"Due this month", items: active.filter(x => !x.m.overdue && x.m.days > 7 && x.m.days <= 30) },
-{ label:"Later", items: active.filter(x => !x.m.overdue && x.m.days > 30) }
+// Buckets loans (already computed with {loan, m}) into the same
+// Overdue / Due this week / Due this month / Later segments the
+// old timeline view used, now reused to group the main loan list.
+function bucketLoansByDueDate(scoredLoans){
+return [
+{ key:"overdue", label:"Overdue", accent:"danger", items: scoredLoans.filter(x => x.m.overdue) },
+{ key:"week", label:"Due this week", accent:"warning", items: scoredLoans.filter(x => !x.m.overdue && x.m.days <= 7) },
+{ key:"month", label:"Due this month", accent:"primary", items: scoredLoans.filter(x => !x.m.overdue && x.m.days > 7 && x.m.days <= 30) },
+{ key:"later", label:"Later", accent:"muted", items: scoredLoans.filter(x => !x.m.overdue && x.m.days > 30) }
 ].filter(g => g.items.length);
-
-const el = document.getElementById("timeline");
-el.innerHTML = groups.length ? groups.map(group => `
-<div class="timeline-group">
-<div class="timeline-group-label">${group.label} (${group.items.length})</div>
-<div class="timeline-group-items">
-${group.items.map(({loan, m}) => {
-const badge = timelineBadge(loan, m);
-return `
-<div class="timeline-item ${badge.dotClass === 'overdue' ? 'is-overdue' : ''}">
-<span class="timeline-dot ${badge.dotClass}"></span>
-<div class="timeline-item-main">
-<span class="timeline-item-name">${loan.name}</span>
-<span class="timeline-item-amount">${money(m.repaymentOutstanding)} due &middot; ${formatDate(loan.dueDate)}</span>
-</div>
-<span class="timeline-badge ${badge.badgeClass}">${badge.text}</span>
-</div>`;
-}).join("")}
-</div>
-</div>`).join("") : `<div class="empty-state">No active loans to show.</div>`;
 }
 
 function showNote(id){
@@ -1776,9 +1775,11 @@ document.body.classList.toggle("is-admin", isAdmin());
 if(isAdmin()){
 loginBtn.textContent = "Logout (admin)";
 loginBtn.onclick = handleLogout;
+resetIdleTimer();
 }else{
 loginBtn.textContent = "Admin login";
 loginBtn.onclick = openLoginModal;
+clearTimeout(idleTimer);
 }
 renderLoanGrid();
 }
@@ -1820,6 +1821,40 @@ window.closeLoginModal = closeLoginModal;
 window.handleLogin = handleLogin;
 window.handleLogout = handleLogout;
 
+/* ----------------------------------------
+Auto-logout after 10 minutes of inactivity.
+Timer only runs while an admin is logged in;
+mouse/keyboard/touch/scroll activity resets it.
+A visibility check catches the case where the
+tab was backgrounded and timers were throttled.
+---------------------------------------- */
+const IDLE_TIMEOUT_MS = 10 * 60 * 1000;
+let idleTimer = null;
+let lastActivityAt = Date.now();
+
+function resetIdleTimer(){
+lastActivityAt = Date.now();
+clearTimeout(idleTimer);
+if(!isAdmin()) return;
+idleTimer = setTimeout(handleIdleTimeout, IDLE_TIMEOUT_MS);
+}
+
+async function handleIdleTimeout(){
+if(!isAdmin()) return;
+await handleLogout();
+showToast("Logged out after 10 minutes of inactivity");
+}
+
+["mousemove","mousedown","keydown","touchstart","scroll"].forEach(evt => {
+document.addEventListener(evt, resetIdleTimer, { passive:true });
+});
+
+document.addEventListener("visibilitychange", () => {
+if(document.visibilityState === "visible" && isAdmin() && Date.now() - lastActivityAt >= IDLE_TIMEOUT_MS){
+handleIdleTimeout();
+}
+});
+
 /* ==========================================
 DARK MODE
 ========================================== */
@@ -1831,12 +1866,6 @@ const isDark = document.documentElement.getAttribute("data-theme") === "dark";
 document.documentElement.setAttribute("data-theme", isDark ? "light" : "dark");
 darkBtn.textContent = isDark ? "Dark mode" : "Light mode";
 });
-
-function printDashboard(){
-window.print();
-}
-
-window.printDashboard = printDashboard;
 
 /* ==========================================
 PNG REPORTS (Phase C)
@@ -1995,7 +2024,6 @@ if(isAdmin()) await loadAdminDateGiven();
 
 renderSummary();
 renderLoanGrid();
-renderTimeline();
 
 document.getElementById("lastUpdated").textContent =
 "Last loaded: " + new Date().toLocaleString();
@@ -2015,7 +2043,6 @@ await loadLoans();
 if(isAdmin()) await loadAdminDateGiven();
 renderSummary();
 renderLoanGrid();
-renderTimeline();
 document.getElementById("lastUpdated").textContent = "Last loaded: " + new Date().toLocaleString();
 }, 400);
 }
