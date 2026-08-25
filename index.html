@@ -850,6 +850,7 @@ text-align:center;
         </div>
         <div class="header-actions">
             <button id="darkModeBtn" class="btn">Dark mode</button>
+            <button id="shareScreenBtn" class="btn" onclick="shareScreenshot(this)">Share screenshot</button>
             <div class="reports-menu admin-only">
                 <button class="btn" onclick="toggleReportsMenu()">Reports</button>
                 <div class="reports-dropdown" id="reportsDropdown">
@@ -1868,8 +1869,48 @@ darkBtn.textContent = isDark ? "Dark mode" : "Light mode";
 });
 
 /* ==========================================
-PNG REPORTS (Phase C)
+SHARE SCREENSHOT (whole dashboard, as currently shown:
+current filter, expanded cards, admin/dark mode state)
 ========================================== */
+
+async function shareScreenshot(btn){
+const originalLabel = btn.textContent;
+btn.disabled = true;
+btn.textContent = "Capturing...";
+
+try{
+const target = document.querySelector(".container");
+const bg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#ffffff';
+const canvas = await html2canvas(target, { backgroundColor: bg, scale: 2, useCORS: true });
+
+const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
+if(!blob){ throw new Error("Could not generate image"); }
+
+const filename = `dashboard-${new Date().toISOString().slice(0,10)}.png`;
+const file = new File([blob], filename, { type: "image/png" });
+
+if(navigator.canShare && navigator.canShare({ files:[file] })){
+await navigator.share({ files:[file], title:"Dashboard" });
+}else{
+const link = document.createElement("a");
+link.download = filename;
+link.href = URL.createObjectURL(blob);
+link.click();
+URL.revokeObjectURL(link.href);
+showToast("Screenshot downloaded");
+}
+}catch(err){
+if(err && err.name !== "AbortError"){
+console.error("Screenshot error:", err);
+showToast("Couldn't create screenshot");
+}
+}finally{
+btn.disabled = false;
+btn.textContent = originalLabel;
+}
+}
+
+window.shareScreenshot = shareScreenshot;
 
 function toggleReportsMenu(){
 document.getElementById("reportsDropdown").classList.toggle("open");
