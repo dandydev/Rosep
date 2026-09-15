@@ -458,9 +458,43 @@ color:var(--muted);
 
 .detail-row strong{
 color:var(--text);
+
 font-weight:600;
 font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
 font-variant-numeric:tabular-nums;
+}
+
+.old-interest-block{
+margin-top:8px;
+padding-top:8px;
+border-top:1px dashed var(--border);
+}
+
+.old-interest-history{
+display:flex;
+flex-direction:column;
+gap:4px;
+margin-top:6px;
+max-height:160px;
+overflow-y:auto;
+}
+
+.old-interest-add{
+display:flex;
+gap:6px;
+margin-top:8px;
+flex-wrap:wrap;
+}
+
+.old-interest-add input{
+flex:1;
+min-width:110px;
+border:1px solid var(--border);
+background:var(--card);
+color:var(--text);
+border-radius:8px;
+padding:6px 8px;
+font-size:.8rem;
 }
 
 .detail-grid{
@@ -1009,6 +1043,14 @@ text-align:center;
 
             <div id="loanFormFields"></div>
 
+            <div class="form-row">
+                <div>
+                    <label>Old interest amount (frozen)</label>
+                    <input type="number" step="any" id="loanFormOldInterestOriginal" placeholder="0">
+                </div>
+            </div>
+            <div style="font-size:.75rem;color:var(--muted);margin-top:-8px;margin-bottom:6px;">Set this once when you lower a loan's rate — the interest already accumulated under the old rate. Log each payment she makes against it separately, from the loan card's "old-interest payments" section, instead of editing this number.</div>
+
             <label>Note</label>
             <textarea id="loanFormNote" placeholder="Optional details shown in 'View details'"></textarea>
 
@@ -1143,7 +1185,7 @@ const status = getStatus(loan.dueDate);
 return { ...lump, overdue:status.overdue, days:status.days };
 }
 
-const PUBLIC_LOAN_COLUMNS = "id, name, repayment_type, status, due_date, principal, principal_paid, monthly_interest, paid, expected_total, daily_rate, last_payment_date, last_payment_for_month, note, payment_screenshots, created_at, updated_at";
+const PUBLIC_LOAN_COLUMNS = "id, name, repayment_type, status, due_date, principal, principal_paid, monthly_interest, paid, expected_total, daily_rate, last_payment_date, last_payment_for_month, note, payment_screenshots, old_interest_original, old_interest_payments, created_at, updated_at";
 
 async function loadLoans(){
 const { data, error } = await supabaseClient.from("loans").select(PUBLIC_LOAN_COLUMNS);
@@ -1162,6 +1204,8 @@ expectedTotal: row.expected_total !== null ? Number(row.expected_total) : null,
 dailyRate: row.daily_rate !== null ? Number(row.daily_rate) : null,
 lastPayment: row.last_payment_date ? { date: row.last_payment_date, forMonth: row.last_payment_for_month } : null,
 screenshots: Array.isArray(row.payment_screenshots) ? row.payment_screenshots : [],
+oldInterestOriginal: Number(row.old_interest_original || 0),
+oldInterestPayments: Array.isArray(row.old_interest_payments) ? row.old_interest_payments : [],
 note: row.note || ""
 }));
 }
@@ -1239,6 +1283,7 @@ document.getElementById("loanFormStatus").value = loan.status;
 document.getElementById("loanFormDueDate").value = loan.dueDate;
 document.getElementById("loanFormLastPaymentDate").value = loan.lastPayment ? loan.lastPayment.date : "";
 document.getElementById("loanFormLastPaymentMonth").value = loan.lastPayment ? loan.lastPayment.forMonth : "";
+document.getElementById("loanFormOldInterestOriginal").value = loan.oldInterestOriginal ? loan.oldInterestOriginal : "";
 document.getElementById("loanFormNote").value = loan.note || "";
 renderLoanFormFields({
 principal: loan.principal,
@@ -1293,6 +1338,7 @@ due_date: document.getElementById("loanFormDueDate").value,
 date_given: document.getElementById("loanFormDateGiven").value || null,
 last_payment_date: lastPaymentDate || null,
 last_payment_for_month: lastPaymentMonth || (lastPaymentDate ? lastPaymentDate.slice(0,7) : null),
+old_interest_original: Number(document.getElementById("loanFormOldInterestOriginal").value || 0),
 note: document.getElementById("loanFormNote").value.trim() || null,
 admin_note: document.getElementById("loanFormAdminNote").value.trim() || null,
 principal: 0,
@@ -1404,6 +1450,94 @@ renderLoanGrid();
 }
 window.toggleLoanExpand = toggleLoanExpand;
 
+/* ==========================================
+OLD INTEREST (rate-reduction feature):
+loan.oldInterestOriginal is a frozen snapshot of
+interest accrued under a previous rate, entered once
+via the edit form. loan.oldInterestPayments is a list
+of { amount, date } entries logged one at a time as she
+pays it down — never edited as a single running total,
+to avoid manual subtraction mistakes.
+========================================== */
+
+function oldInterestMetrics(loan){
+const payments = loan.oldInterestPayments || [];
+const paid = payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+const balance = Math.max(0, (loan.oldInterestOriginal || 0) - paid);
+let lastPaid = null;
+payments.forEach(p => { if(p.date && (!lastPaid || p.date > lastPaid)) lastPaid = p.date; });
+return { paid, balance, lastPaid };
+}
+
+const oldInterestExpandedIds = new Set();
+
+function toggleOldInterestHistory(id){
+if(oldInterestExpandedIds.has(id)) oldInterestExpandedIds.delete(id);
+else oldInterestExpandedIds.add(id);
+renderLoanGrid();
+}
+window.toggleOldInterestHistory = toggleOldInterestHistory;
+
+function renderOldInterestBlock(loan){
+const isOpen = oldInterestExpandedIds.has(loan.id);
+const payments = (loan.oldInterestPayments || [])
+.map((p, idx) => ({ ...p, idx }))
+.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+
+const historyRows = payments.length === 0 ?
+`<div class="detail-row"><span class="lc-meta">No old-interest payments logged yet</span></div>` :
+payments.map(p => `
+<div class="detail-row">
+<span>${formatDate(p.date)}</span>
+<span>${money(p.amount)} <button class="icon-btn danger admin-only" style="padding:0 4px;font-size:.75rem;" title="Delete entry" onclick="handleDeleteOldInterestPayment('${loan.id}', ${p.idx})">&#10005;</button></span>
+</div>`).join("");
+
+return `
+<div class="old-interest-block">
+<button class="link-btn" onclick="toggleOldInterestHistory('${loan.id}')">${isOpen ? '\u25b2 Hide' : '\u25bc View'} old-interest payments (${(loan.oldInterestPayments||[]).length})</button>
+${isOpen ? `
+<div class="old-interest-history">${historyRows}</div>
+<div class="old-interest-add admin-only block">
+<input type="number" step="any" id="oldIntAmt_${loan.id}" placeholder="Amount paid">
+<input type="date" id="oldIntDate_${loan.id}">
+<button class="btn btn-primary" onclick="handleAddOldInterestPayment('${loan.id}')">Add</button>
+</div>
+` : ""}
+</div>`;
+}
+
+async function handleAddOldInterestPayment(loanId){
+const loan = loans.find(l => l.id === loanId);
+if(!loan) return;
+const amountEl = document.getElementById(`oldIntAmt_${loanId}`);
+const dateEl = document.getElementById(`oldIntDate_${loanId}`);
+const amount = Number(amountEl.value);
+const date = dateEl.value;
+if(!amount || amount <= 0){ alert("Enter a valid amount."); return; }
+if(!date){ alert("Pick a date."); return; }
+
+const updated = [...(loan.oldInterestPayments || []), { amount, date }];
+const { error, data } = await supabaseClient.from("loans").update({ old_interest_payments: updated }).eq("id", loanId).select();
+if(error){ alert("Failed to save payment: " + error.message); return; }
+if(!data || data.length === 0){ alert("Blocked: not logged in as admin, or your session expired. Please log in again."); return; }
+await refreshDashboard();
+showToast("Old-interest payment logged");
+}
+window.handleAddOldInterestPayment = handleAddOldInterestPayment;
+
+async function handleDeleteOldInterestPayment(loanId, idx){
+const loan = loans.find(l => l.id === loanId);
+if(!loan) return;
+if(!confirm("Remove this old-interest payment entry?")) return;
+const updated = (loan.oldInterestPayments || []).filter((_, i) => i !== idx);
+const { error, data } = await supabaseClient.from("loans").update({ old_interest_payments: updated }).eq("id", loanId).select();
+if(error){ alert("Failed to remove entry: " + error.message); return; }
+if(!data || data.length === 0){ alert("Blocked: not logged in as admin, or your session expired. Please log in again."); return; }
+await refreshDashboard();
+showToast("Entry removed");
+}
+window.handleDeleteOldInterestPayment = handleDeleteOldInterestPayment;
+
 function renderLoanCard(loan){
 const today = new Date();
 const m = computeMetrics(loan, today);
@@ -1464,11 +1598,18 @@ const lastPaymentLine = loan.lastPayment ?
 `<div class="detail-row"><span>${formatLastPayment(loan)}</span></div>` :
 (isAdmin() && loan.dateGiven ? `<div class="detail-row admin-only block"><span>Given ${formatDate(loan.dateGiven)} (private)</span></div>` : "");
 
+const oldInterestLine = loan.oldInterestOriginal > 0 ?
+`<div class="detail-row"><span>Old interest owed</span><span style="color:var(--danger);font-weight:600;">${money(oldInterestMetrics(loan).balance)}${oldInterestMetrics(loan).lastPaid ? ' \u00b7 last paid ' + formatDate(oldInterestMetrics(loan).lastPaid) : ''}</span></div>` : "";
+
+const oldInterestBlock = loan.oldInterestOriginal > 0 ? renderOldInterestBlock(loan) : "";
+
 const isExpanded = expandedLoanIds.has(loan.id);
 const expandedBlock = isExpanded ? `
 <div class="lc-expanded">
 ${progressBlock}
 ${details}
+${oldInterestLine}
+${oldInterestBlock}
 ${lastPaymentLine}
 <div class="card-footer">
 <button class="link-btn" onclick="showNote('${loan.id}')">View details</button>
