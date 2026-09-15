@@ -932,9 +932,11 @@ text-align:center;
             <h3><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>Overdue interest</h3>
             <div class="value" id="overdueInterest">₦0</div>
             <p class="summary-hint">Interest that's currently late, across all overdue loans.</p>
+            <button class="breakdown-toggle" onclick="toggleBreakdown('overdue')">View breakdown</button>
+            <div class="breakdown-list" id="overdueInterestBreakdown"></div>
         </div>
         <div class="summary-card accent-preadjustment summary-card--compact" id="preAdjustmentCard" style="display:none;">
-            <h3><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>Pre-adjustment interest</h3>
+            <h3><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>Old-rate interest</h3>
             <div class="value text-danger" id="totalPreAdjustment">₦0</div>
             <p class="summary-hint">Interest frozen from before a loan's rate was lowered — tracked and paid down separately.</p>
             <button class="breakdown-toggle" onclick="toggleBreakdown('preadjustment')">View breakdown</button>
@@ -1067,11 +1069,11 @@ text-align:center;
 
             <div class="form-row">
                 <div>
-                    <label>Pre-adjustment interest (frozen)</label>
+                    <label>Old-rate interest (frozen)</label>
                     <input type="number" step="any" id="loanFormOldInterestOriginal" placeholder="0">
                 </div>
             </div>
-            <div style="font-size:.75rem;color:var(--muted);margin-top:-8px;margin-bottom:6px;">Set this once when you lower a loan's rate — the interest already accumulated before the change. Log each payment she makes against it separately, from the loan card's "pre-adjustment payments" section, instead of editing this number.</div>
+            <div style="font-size:.75rem;color:var(--muted);margin-top:-8px;margin-bottom:6px;">Set this once when you lower a loan's rate — the interest already accumulated before the change. Log each payment she makes against it separately, from the loan card's "old-rate payments" section, instead of editing this number.</div>
 
             <label>Note</label>
             <textarea id="loanFormNote" placeholder="Optional details shown in 'View details'"></textarea>
@@ -1507,7 +1509,7 @@ const payments = (loan.oldInterestPayments || [])
 .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
 
 const historyRows = payments.length === 0 ?
-`<div class="detail-row"><span class="lc-meta">No pre-adjustment payments logged yet</span></div>` :
+`<div class="detail-row"><span class="lc-meta">No old-rate payments logged yet</span></div>` :
 payments.map(p => `
 <div class="detail-row">
 <span>${formatDate(p.date)}</span>
@@ -1516,7 +1518,7 @@ payments.map(p => `
 
 return `
 <div class="old-interest-block">
-<button class="link-btn" onclick="toggleOldInterestHistory('${loan.id}')">${isOpen ? '\u25b2 Hide' : '\u25bc View'} pre-adjustment payments (${(loan.oldInterestPayments||[]).length})</button>
+<button class="link-btn" onclick="toggleOldInterestHistory('${loan.id}')">${isOpen ? '\u25b2 Hide' : '\u25bc View'} old-rate payments (${(loan.oldInterestPayments||[]).length})</button>
 ${isOpen ? `
 <div class="old-interest-history">${historyRows}</div>
 <div class="old-interest-add admin-only block">
@@ -1543,14 +1545,14 @@ const { error, data } = await supabaseClient.from("loans").update({ old_interest
 if(error){ alert("Failed to save payment: " + error.message); return; }
 if(!data || data.length === 0){ alert("Blocked: not logged in as admin, or your session expired. Please log in again."); return; }
 await refreshDashboard();
-showToast("Old-interest payment logged");
+showToast("Old-rate interest payment logged");
 }
 window.handleAddOldInterestPayment = handleAddOldInterestPayment;
 
 async function handleDeleteOldInterestPayment(loanId, idx){
 const loan = loans.find(l => l.id === loanId);
 if(!loan) return;
-if(!confirm("Remove this old-interest payment entry?")) return;
+if(!confirm("Remove this old-rate interest payment entry?")) return;
 const updated = (loan.oldInterestPayments || []).filter((_, i) => i !== idx);
 const { error, data } = await supabaseClient.from("loans").update({ old_interest_payments: updated }).eq("id", loanId).select();
 if(error){ alert("Failed to remove entry: " + error.message); return; }
@@ -1621,7 +1623,7 @@ const lastPaymentLine = loan.lastPayment ?
 (isAdmin() && loan.dateGiven ? `<div class="detail-row admin-only block"><span>Given ${formatDate(loan.dateGiven)} (private)</span></div>` : "");
 
 const oldInterestLine = loan.oldInterestOriginal > 0 ?
-`<div class="detail-row"><span>Pre-adjustment interest</span><span style="color:var(--danger);font-weight:600;">${money(oldInterestMetrics(loan).balance)}${oldInterestMetrics(loan).lastPaid ? ' \u00b7 last paid ' + formatDate(oldInterestMetrics(loan).lastPaid) : ''}</span></div>` : "";
+`<div class="detail-row"><span>Old-rate interest</span><span style="color:var(--danger);font-weight:600;">${money(oldInterestMetrics(loan).balance)}${oldInterestMetrics(loan).lastPaid ? ' \u00b7 last paid ' + formatDate(oldInterestMetrics(loan).lastPaid) : ''}</span></div>` : "";
 
 const oldInterestBlock = loan.oldInterestOriginal > 0 ? renderOldInterestBlock(loan) : "";
 
@@ -1655,7 +1657,7 @@ return `
 <span class="lc-amount ${m.overdue ? 'text-danger' : ''}">${money(amountValue)}</span>
 </div>
 </div>
-${oldInterestMetrics(loan).balance > 0 ? `<span class="pre-adjustment-badge">Pre-adjustment: ${money(oldInterestMetrics(loan).balance)}</span>` : ""}
+${oldInterestMetrics(loan).balance > 0 ? `<span class="pre-adjustment-badge">Old-rate: ${money(oldInterestMetrics(loan).balance)}</span>` : ""}
 <div class="lc-row2">
 <span class="lc-meta">Due ${formatDate(loan.dueDate)} \u00b7 <span class="${statusClass}">${statusText}</span></span>
 <button class="lc-expand-btn" onclick="toggleLoanExpand('${loan.id}')" aria-label="Toggle details">${isExpanded ? '&#9650; Less' : '&#9660; More'}</button>
@@ -1736,6 +1738,7 @@ let overdueCount = 0, upcomingCount = 0, totalPreAdjustment = 0;
 const principalRows = [];
 const repaymentRows = [];
 const preAdjustmentRows = [];
+const overdueInterestRows = [];
 
 loans.filter(l => l.status === "active").forEach(loan=>{
 const m = computeMetrics(loan, today);
@@ -1751,15 +1754,19 @@ if(m.repaymentOutstanding + oldBal > 0){
 repaymentRows.push({ name: loan.name, value: m.repaymentOutstanding + oldBal });
 }
 if(m.overdue){
+let loanOverdueInterest = 0;
 if(loan.type === "monthly"){
-overdueInterest += m.interestDue;
+loanOverdueInterest = m.interestDue;
 }else{
-overdueInterest += (m.repaymentOutstanding - m.principalOutstanding);
+loanOverdueInterest = (m.repaymentOutstanding - m.principalOutstanding);
+}
+overdueInterest += loanOverdueInterest;
+if(loanOverdueInterest > 0){
+overdueInterestRows.push({ name: loan.name, value: loanOverdueInterest });
 }
 }
-// Old (frozen) interest is always treated as already-owed/overdue,
-// regardless of the loan's current due-date status.
-overdueInterest += oldBal;
+// Old-rate interest is tracked and totalled on its own card,
+// so it's kept out of "Overdue interest" here to avoid double counting.
 if(oldBal > 0){
 totalPreAdjustment += oldBal;
 preAdjustmentRows.push({ name: loan.name, value: oldBal });
@@ -1772,6 +1779,9 @@ document.getElementById("totalRepayment").textContent = money(totalRepayment);
 const overdueInterestEl = document.getElementById("overdueInterest");
 overdueInterestEl.textContent = money(overdueInterest);
 overdueInterestEl.classList.toggle("text-danger", overdueInterest > 0);
+document.getElementById("overdueInterestBreakdown").innerHTML = overdueInterestRows.length ?
+overdueInterestRows.map(r => `<div class="breakdown-row"><span>${r.name}</span><strong>${money(r.value)}</strong></div>`).join("") :
+`<div class="breakdown-row"><span>Nothing overdue.</span></div>`;
 
 const preAdjustmentCard = document.getElementById("preAdjustmentCard");
 preAdjustmentCard.style.display = totalPreAdjustment > 0 ? "" : "none";
@@ -1797,7 +1807,7 @@ repaymentRows.map(r => `<div class="breakdown-row"><span>${r.name}</span><strong
 }
 
 function toggleBreakdown(kind){
-const ids = { principal: "principalBreakdown", repayment: "repaymentBreakdown", preadjustment: "preAdjustmentBreakdown" };
+const ids = { principal: "principalBreakdown", repayment: "repaymentBreakdown", preadjustment: "preAdjustmentBreakdown", overdue: "overdueInterestBreakdown" };
 const el = document.getElementById(ids[kind]);
 el.style.display = el.style.display === "flex" ? "none" : "flex";
 }
@@ -2171,7 +2181,7 @@ const rows = snapshot.map(({loan, m}) => {
 const oldBal = oldInterestMetrics(loan).balance;
 const combined = m.interestDue + oldBal;
 total += combined;
-const label = oldBal > 0 ? `${loan.name} (incl. ${money(oldBal)} pre-adjustment interest)` : loan.name;
+const label = oldBal > 0 ? `${loan.name} (incl. ${money(oldBal)} old-rate interest)` : loan.name;
 return { label, value: money(combined) };
 });
 await renderReportToPNG(
@@ -2193,7 +2203,7 @@ const oldBal = oldInterestMetrics(loan).balance;
 const combined = m.repaymentOutstanding + oldBal;
 total += combined;
 const overdueText = loan.type === "monthly" ? "Overdue" : `Overdue (${m.days} day${m.days!==1?'s':''})`;
-const label = oldBal > 0 ? `${loan.name} — ${overdueText} (incl. ${money(oldBal)} pre-adjustment interest)` : `${loan.name} — ${overdueText}`;
+const label = oldBal > 0 ? `${loan.name} — ${overdueText} (incl. ${money(oldBal)} old-rate interest)` : `${loan.name} — ${overdueText}`;
 return { label, value: money(combined) };
 });
 await renderReportToPNG(
@@ -2213,7 +2223,7 @@ const rows = snapshot.map(({loan, m}) => {
 const oldBal = oldInterestMetrics(loan).balance;
 const combined = m.repaymentOutstanding + oldBal;
 total += combined;
-const label = oldBal > 0 ? `${loan.name} (incl. ${money(oldBal)} pre-adjustment interest)` : loan.name;
+const label = oldBal > 0 ? `${loan.name} (incl. ${money(oldBal)} old-rate interest)` : loan.name;
 return { label, value: money(combined) };
 });
 await renderReportToPNG(
